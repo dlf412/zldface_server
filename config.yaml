@@ -8,7 +8,7 @@ zap:
   director: ${LOGGING_DIR:log}
   link-name: 'latest_log'
   show-line: true
-  encode-level: 'LowercaseColorLevelEncoder'
+  encode-level: 'LowercaseLevelEncoder'
   stacktrace-key: 'stacktrace'
   log-in-console: true
 
@@ -29,6 +29,7 @@ mysql:
   user: ${MYSQL_USER:zldtest}
   password: ${MYSQL_PASSWORD:Khfdf*7123gdUIUYf}
   db: ${MYSQL_DB:zldtest}
+  config: 'charset=utf8mb4&parseTime=True&loc=Local'
   max-idle-conns: 10
   max-open-conns: 100
   log-mode: false

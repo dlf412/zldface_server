@@ -3,7 +3,6 @@ package config
 import (
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"log"
 	"os"
 	"strings"
@@ -11,18 +10,19 @@ import (
 
 type system struct {
 	Debug bool `yaml:"debug"`
-	Addr int `yaml:"addr"`
+	Addr  int  `yaml:"addr"`
 }
 
 type Cfg struct {
-	Redis redis_cfg
+	Redis  redis_cfg
 	System system
-	Zap zap_cfg
+	Zap    zap_cfg
+	Mysql  mysql_cfg
 }
 
 var Config Cfg = Cfg{}
 var RedisCli *redis.Client
-var Logger *zap.Logger
+var Logger = ZldLog{}
 
 func init() {
 	viper.SetConfigName("config")
@@ -35,7 +35,7 @@ func init() {
 		value := viper.GetString(k)
 		//log.Println(k, value)
 		if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
-			viper.Set(k, getEnv(strings.TrimSuffix(strings.TrimPrefix(value,"${"), "}")))
+			viper.Set(k, getEnv(strings.TrimSuffix(strings.TrimPrefix(value, "${"), "}")))
 		}
 	}
 
@@ -47,7 +47,7 @@ func init() {
 	log.Println(Config)
 
 	RedisCli = Config.Redis.Init()
-	Logger = Config.Zap.Init()
+	Logger.Logger = Config.Zap.Init()
 }
 
 func getEnv(env string) string {

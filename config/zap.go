@@ -24,11 +24,22 @@ type zap_cfg struct {
 	LogInConsole  bool   `mapstructure:"log-in-console" json:"logInConsole" yaml:"log-in-console"`
 }
 
+type ZldLog struct {
+	*zap.Logger
+}
 
+func (l ZldLog) Printf(message string, data ...interface{}) {
+	fields := []zap.Field{}
+	for idx, d := range data {
+		fields = append(fields, zap.Any(fmt.Sprintf("field%d", idx), d))
+	}
+
+	l.Info(message, fields...)
+}
 
 var level zapcore.Level
 
-func (z zap_cfg)Init() (logger *zap.Logger) {
+func (z zap_cfg) Init() (logger *zap.Logger) {
 	if err := utils.CreateDir(z.Director); err != nil {
 		panic(err)
 	}
@@ -70,7 +81,7 @@ func getEncoderConfig(z zap_cfg) (config zapcore.EncoderConfig) {
 		TimeKey:        "time",
 		NameKey:        "logger",
 		CallerKey:      "caller",
-		StacktraceKey: z.StacktraceKey,
+		StacktraceKey:  z.StacktraceKey,
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
 		EncodeTime:     CustomTimeEncoder,
@@ -116,7 +127,7 @@ func CustomTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 }
 
 func getWriteSyncer(z zap_cfg) (zapcore.WriteSyncer, error) {
-	options := []zaprotatelogs.Option{zaprotatelogs.WithMaxAge(7*24*time.Hour),zaprotatelogs.WithRotationTime(24*time.Hour),}
+	options := []zaprotatelogs.Option{zaprotatelogs.WithMaxAge(7 * 24 * time.Hour), zaprotatelogs.WithRotationTime(24 * time.Hour)}
 	if runtime.GOOS == "linux" {
 		options = append(options, zaprotatelogs.WithLinkName(z.LinkName))
 	}
