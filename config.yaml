@@ -1,0 +1,40 @@
+# zldface_server Global Configuration
+
+# zap logger configuration
+zap:
+  level: 'info'
+  format: 'console'
+  prefix: '[ZLDFace-Server]'
+  director: ${LOGGING_DIR:log}
+  link-name: 'latest_log'
+  show-line: true
+  encode-level: 'LowercaseColorLevelEncoder'
+  stacktrace-key: 'stacktrace'
+  log-in-console: true
+
+# redis configuration
+redis:
+  db: ${REDIS_DB:2}
+  url: ${REDIS_CACHE:redis://127.0.0.1:6379/}
+
+# system configuration
+system:
+  debug: ${DEBUG:True}
+  addr: 8888
+
+# mysql connect configuration
+mysql:
+  host: ${MYSQL_HOST:127.0.0.1}
+  port: ${MYSQL_PORT:3306}
+  user: ${MYSQL_USER:zldtest}
+  password: ${MYSQL_PASSWORD:Khfdf*7123gdUIUYf}
+  db: ${MYSQL_DB:zldtest}
+  max-idle-conns: 10
+  max-open-conns: 100
+  log-mode: false
+  log-zap: ""
+
+# local configuration
+storage:
+  reg-dir: ${REGISTER_IMG_DIR:./}  # 注册照路径
+  ver-dir: ${HPFACE_IMG_DIR:./} # 识别照路径
