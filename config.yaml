@@ -33,9 +33,12 @@ mysql:
   max-idle-conns: 10
   max-open-conns: 100
   log-mode: false
-  log-zap: ""
+  log-zap: "warn"
 
-# local configuration
+# storage configuration
 storage:
-  reg-dir: ${REGISTER_IMG_DIR:./}  # 注册照路径
-  ver-dir: ${HPFACE_IMG_DIR:./} # 识别照路径
+  regdir: ${REGISTER_IMG_DIR:/data/reg/}
+  verdir: ${HPFACE_IMG_DIR:/data/ver/}
+
+# 认证方式
+auth: 'ZldAuth'

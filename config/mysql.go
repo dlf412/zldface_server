@@ -20,7 +20,7 @@ type mysql_cfg struct {
 	LogZap       string `mapstructure:"log-zap" json:"logZap" yaml:"log-zap"`
 }
 
-func Init(m mysql_cfg) *gorm.DB {
+func (m mysql_cfg) Init() *gorm.DB {
 	dsn := m.User + ":" + m.Password + "@tcp(" + m.Host + ":" + m.Port + ")/" + m.DB + "?" + m.Config
 	mysqlConfig := mysql.Config{
 		DSN:                       dsn,   // DSN data source name

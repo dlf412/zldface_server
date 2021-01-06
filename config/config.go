@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
+	"gorm.io/gorm"
 	"log"
 	"os"
 	"strings"
@@ -13,16 +14,26 @@ type system struct {
 	Addr  int  `yaml:"addr"`
 }
 
-type Cfg struct {
-	Redis  redis_cfg
-	System system
-	Zap    zap_cfg
-	Mysql  mysql_cfg
+type storage struct {
+	RegDir string `yaml:"regdir"`
+	VerDir string `yaml:"verdir"`
 }
 
-var Config Cfg = Cfg{}
+type Cfg struct {
+	Redis   redis_cfg
+	System  system
+	Zap     zap_cfg
+	Mysql   mysql_cfg
+	Storage storage
+	Auth    string
+}
+
+var Config = Cfg{}
 var RedisCli *redis.Client
 var Logger = ZldLog{}
+var DB *gorm.DB
+var RegDir, VerDir string
+var Debug bool
 
 func init() {
 	viper.SetConfigName("config")
@@ -44,10 +55,13 @@ func init() {
 		log.Fatalf("unable to decode into struct, %v", err)
 	}
 
-	log.Println(Config)
-
 	RedisCli = Config.Redis.Init()
 	Logger.Logger = Config.Zap.Init()
+	DB = Config.Mysql.Init()
+
+	VerDir = Config.Storage.VerDir
+	RegDir = Config.Storage.RegDir
+	Debug = Config.System.Debug
 }
 
 func getEnv(env string) string {
