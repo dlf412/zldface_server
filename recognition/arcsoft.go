@@ -53,7 +53,7 @@ func NewEngine() (*Engine, error) {
 		1,
 		EnableFaceDetect|EnableFaceRecognition)
 
-	if err.(EngineError).Code == 90115 {
+	if err != nil && err.(EngineError).Code == 90115 {
 		if err := Activation(appid, key); err != nil {
 			return nil, err
 		}
@@ -101,8 +101,29 @@ func (e *Engine) CompareFace(f1, f2 FaceFeature) (float32, error) {
 	return e.FaceFeatureCompare(f1, f2)
 }
 
-func (e *Engine) Destory() error {
-	return e.Destory()
+func ImageToFeature(img interface{}) (feature []byte, err error) {
+	var eng *Engine
+	eng, err = NewEngine()
+	if err != nil {
+		return
+	}
+	defer eng.Destroy()
+	var face *FaceImage
+	face, err = eng.DetectFace(img)
+	if err != nil {
+		return
+	}
+
+	var f FaceFeature
+	f, err = eng.ExtractFace(face)
+	if err != nil {
+		return
+	}
+	defer f.Release()
+	feature = f.Feature
+	//feature = []byte{}
+	//feature = append(feature, f.Feature...)
+	return
 }
 
 func CompareFeature(arr1, arr2 []byte) (score float32, err error) {
@@ -111,17 +132,18 @@ func CompareFeature(arr1, arr2 []byte) (score float32, err error) {
 	if err != nil {
 		return
 	}
-	defer eng.Destory()
+	defer eng.Destroy()
+
 	return eng.FaceFeatureCompareEx(arr1, arr2)
 }
 
-func (e *Engine) CompareImgFeature(img interface{}, arr []byte) (score float32, err error) {
+func CompareImgFeature(img interface{}, arr []byte) (score float32, err error) {
 	var eng *Engine
 	eng, err = NewEngine()
 	if err != nil {
 		return
 	}
-	defer eng.Destory()
+	defer eng.Destroy()
 
 	var face *FaceImage
 	face, err = eng.DetectFace(img)
@@ -146,7 +168,7 @@ func CompareImg(img1, img2 interface{}) (score float32, err error) {
 	if err != nil {
 		return
 	}
-	defer eng.Destory()
+	defer eng.Destroy()
 	var face1, face2 *FaceImage
 	face1, err = eng.DetectFace(img1)
 	if err != nil {

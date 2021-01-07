@@ -347,10 +347,10 @@ func (engine *FaceEngine) FaceFeatureCompareEx(arr1, arr2 []byte) (float32, erro
 	var confidenceLevel float32 = 0
 
 	native1 := bytesToNative(arr1)
-	native2 := bytesToNative(arr1)
+	native2 := bytesToNative(arr2)
 
-	defer C.free(unsafe.Pointer(native1))
-	defer C.free(unsafe.Pointer(native2))
+	defer C.free(unsafe.Pointer(native1.feature))
+	defer C.free(unsafe.Pointer(native2.feature))
 
 	r := C.ASFFaceFeatureCompare(engine.handle,
 		native1,
