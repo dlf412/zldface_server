@@ -1,23 +1,52 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
+	"log"
+	"os"
+	"time"
 	reg "zldface_server/recognition"
 )
 
 func main() {
+	eng, err := reg.NewEngine()
+	if err != nil {
+		log.Fatal(err)
+	}
+	features := map[interface{}][]byte{}
 
-	score, err := reg.CompareImg("1.jpg", "10.jpg")
-	fmt.Println(score, err)
+	if f, err := os.Open("test_features"); err == nil {
+		dec := gob.NewDecoder(f)
+		dec.Decode(&features)
+		defer f.Close()
+	} else {
+		fmt.Println("开始提取特征...")
+		bT := time.Now() // 开始时间
+		for i := 1; i <= 50; i++ {
+			pic := fmt.Sprintf("face/%d.jpg", i)
 
-	score, err = reg.CompareImg("1.jpg", "1.jpg")
-	fmt.Println(score, err)
+			if face, err := eng.DetectFace(pic); err == nil {
+				feature, _ := eng.ExtractFeatureByteArr(face)
+				features[pic] = feature
+			}
+		}
+		eT := time.Since(bT) // 从开始到当前所消耗的时间
+		fmt.Println("Extract 50 face cost time: ", eT)
 
-	feature1, err := reg.ImageToFeature("1.jpg")
-	feature2, err := reg.ImageToFeature("10.jpg")
+		wf, _ := os.Create("test_features")
+		defer wf.Close()
+		encoder := gob.NewEncoder(wf)
+		encoder.Encode(features)
+	}
 
-	score1, err := reg.CompareFeature(feature1, feature2)
-	score2, err := reg.CompareImgFeature("1.jpg", feature2)
-
-	fmt.Println(score1, score2)
+	println(len(features))
+	println(len(features["face/1.jpg"]))
+	bT := time.Now()
+	// 开始时间
+	for _, v := range features {
+		eng.SearchN(v, features, 3, 0.78)
+	}
+	eT := time.Since(bT) // 从开始到当前所消耗的时间
+	fmt.Println("search 50 face cost time: ", eT)
 }

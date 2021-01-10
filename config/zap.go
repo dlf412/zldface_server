@@ -29,12 +29,7 @@ type ZldLog struct {
 }
 
 func (l ZldLog) Printf(message string, data ...interface{}) {
-	fields := []zap.Field{}
-	for idx, d := range data {
-		fields = append(fields, zap.Any(fmt.Sprintf("field%d", idx), d))
-	}
-
-	l.Info(message, fields...)
+	l.Info(fmt.Sprintf(message, data...))
 }
 
 var level zapcore.Level

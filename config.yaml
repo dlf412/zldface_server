@@ -37,8 +37,8 @@ mysql:
 
 # storage configuration
 storage:
-  regdir: ${REGISTER_IMG_DIR:/data/reg/}
-  verdir: ${HPFACE_IMG_DIR:/data/ver/}
+  regdir: ${REGISTER_IMG_DIR:face/reg/}
+  verdir: ${HPFACE_IMG_DIR:face/ver/}
 
 # 认证方式
 auth: 'ZldAuth'

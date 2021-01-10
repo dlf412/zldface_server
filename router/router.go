@@ -28,7 +28,8 @@ func Routers() *gin.Engine {
 		}
 	}
 	{
-		InitFaceRouter(PrivateGroup) // 注册功能api路由
+		InitGroupRouter(PrivateGroup) // 注册功能api路由
+		InitUserRouter(PrivateGroup)
 	}
 	config.Logger.Info("router register success")
 	return Router

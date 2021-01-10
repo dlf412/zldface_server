@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 	"zldface_server/config"
+	//"zldface_server/model/request"
 	"zldface_server/router"
 )
 
@@ -26,6 +27,7 @@ func initServer(address string, router *gin.Engine) server {
 
 func runserver() {
 	Router := router.Routers()
+	//request.RegisterValidations()
 	//Router.Static("/form-generator", "./resource/page")
 	address := fmt.Sprintf(":%d", config.Config.System.Addr)
 	s := initServer(address, Router)
@@ -41,6 +43,9 @@ func main() {
 	config.Logger.Info(config.RegDir)
 	config.Logger.Info(config.VerDir)
 
+	// 启动协程异步更新，增加和删除人脸库
+
+	// 启动web服务
 	runserver()
 
 	db, _ := config.DB.DB()

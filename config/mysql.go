@@ -43,7 +43,7 @@ func (m mysql_cfg) Init() *gorm.DB {
 func gormConfig(mod bool) *gorm.Config {
 	var config = &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true}
 	var log_conf = logger.Config{
-		SlowThreshold: 200 * time.Millisecond,
+		SlowThreshold: 1 * time.Millisecond,
 		LogLevel:      logger.Warn,
 		Colorful:      true,
 	}
