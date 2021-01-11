@@ -123,7 +123,7 @@ var doc = `{
         },
         "/user/match/v1": {
             "post": {
-                "description": "post a faceFile to match a user in a group.",
+                "description": "post a faceFile to match a user in a group and save the faceFile.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -151,7 +151,7 @@ var doc = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/recognition.Closest"
+                            "$ref": "#/definitions/response.FaceMatchResult"
                         }
                     }
                 }
@@ -194,7 +194,8 @@ var doc = `{
                         "in": "formData"
                     },
                     {
-                        "type": "file",
+                        "type": "string",
+                        "format": "binary",
                         "description": "人脸特征文件, binary格式",
                         "name": "faceFeature",
                         "in": "formData"
@@ -241,6 +242,9 @@ var doc = `{
                         "type": "integer"
                     }
                 },
+                "faceImagePath": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -252,18 +256,6 @@ var doc = `{
                 }
             }
         },
-        "recognition.Closest": {
-            "type": "object",
-            "properties": {
-                "key": {
-                    "description": "用户自定义的key, 可以是身份证号，可以是文件路径等",
-                    "type": "string"
-                },
-                "score": {
-                    "type": "number"
-                }
-            }
-        },
         "request.FaceGroup": {
             "type": "object",
             "required": [
@@ -272,9 +264,11 @@ var doc = `{
             ],
             "properties": {
                 "gid": {
+                    "description": "分组id",
                     "type": "string"
                 },
                 "name": {
+                    "description": "分组名",
                     "type": "string"
                 }
             }
@@ -287,13 +281,30 @@ var doc = `{
             ],
             "properties": {
                 "gid": {
+                    "description": "分组id",
                     "type": "string"
                 },
                 "uids": {
+                    "description": "用户id列表",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "response.FaceMatchResult": {
+            "type": "object",
+            "properties": {
+                "filePath": {
+                    "type": "string"
+                },
+                "key": {
+                    "description": "用户自定义的key, 可以是身份证号，可以是文件路径等",
+                    "type": "string"
+                },
+                "score": {
+                    "type": "number"
                 }
             }
         }

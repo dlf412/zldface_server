@@ -17,8 +17,3 @@ type FaceUserMatch struct {
 	FaceFile *multipart.FileHeader `form:"faceFile" binding:"required,jpg_content_type"`
 	Gid      string                `form:"gid"`
 }
-
-type FaceUserUpdate struct {
-	Uid      string                `form:"uid" gorm:"column:uid" binding:"required"`
-	FaceFile *multipart.FileHeader `form:"faceFile" binding:"required,jpg_content_type" swaggertype:"string"`
-}

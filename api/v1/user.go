@@ -2,14 +2,18 @@ package v1
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
+	"path"
 	"zldface_server/config"
 	"zldface_server/model"
 	"zldface_server/model/request"
+	"zldface_server/model/response"
 	"zldface_server/recognition"
+	"zldface_server/utils"
 )
 
 //  godoc
@@ -21,7 +25,7 @@ import (
 // @param name formData string false "name"
 // @Param faceFile formData file false "faceFile文件"
 // @param gid formData string false "group id"
-// @param faceFeature formData file false "人脸特征文件, binary格式"
+// @param faceFeature formData string false "人脸特征文件, binary格式" format(binary)
 // @param faceImagePath formData string false "人脸照片路径（服务器已存在的相对路径）"
 // @Success 201 {object} model.FaceUser
 // @Router /users/v1 [post]
@@ -57,7 +61,9 @@ func CreateUser(c *gin.Context) {
 
 		defer faceFile.Close()
 
-		user.FaceImagePath = U.Uid + U.FaceFile.Filename
+		// 计算文件的md5
+		md5 := utils.MD5sum(faceFile)
+		user.FaceImagePath = fmt.Sprint("%s/%s/%s/%s.jpg", md5, md5[0:2], md5[2:4], md5[4:6])
 		user.FaceFeature, err = recognition.FeatureByteArr(faceFile)
 		if err != nil {
 			config.Logger.Warn("图片提取人脸特征失败", zap.Error(err))
@@ -65,7 +71,9 @@ func CreateUser(c *gin.Context) {
 			return
 		} else {
 			go func(f string) {
-				c.SaveUploadedFile(U.FaceFile, config.RegDir+"/"+f)
+				dst := path.Join(config.RegDir, f)
+				utils.CreateDir(path.Dir(dst))
+				c.SaveUploadedFile(U.FaceFile, dst)
 			}(user.FaceImagePath)
 		}
 	} else {
@@ -103,12 +111,12 @@ func CreateUser(c *gin.Context) {
 
 //  godoc
 // @Summary Match a user
-// @Description post a faceFile to match a user in a group.
+// @Description post a faceFile to match a user in a group and save the faceFile.
 // @Accept  multipart/form-data
 // @Param faceFile formData file true "faceFile"
 // @param gid formData string true "group id"
 // @Produce  json
-// @Success 201 {object} recognition.Closest
+// @Success 201 {object} response.FaceMatchResult
 // @Router /user/match/v1 [post]
 func MatchUser(c *gin.Context) {
 	var M request.FaceUserMatch
@@ -146,6 +154,19 @@ func MatchUser(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"err": "未匹配到任何人脸"})
 		return
 	}
-	config.Logger.Info("匹配成功", zap.Any("结果", matches[0]))
+
+	// 存储人脸
+	md5 := utils.MD5sum(ff)
+	vfp := fmt.Sprint("%s/%s/%s/%s.jpg", md5, md5[0:2], md5[2:4], md5[4:6])
+	go func(f string) {
+		dst := path.Join(config.VerDir, f)
+		utils.CreateDir(path.Dir(dst))
+		c.SaveUploadedFile(M.FaceFile, dst)
+	}(vfp)
+
+	result := response.FaceMatchResult{
+		matches[0], vfp,
+	}
+	config.Logger.Info("匹配成功", zap.Any("结果", result))
 	c.JSON(http.StatusOK, matches[0])
 }

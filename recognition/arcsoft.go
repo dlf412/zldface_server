@@ -48,8 +48,8 @@ type Engine struct {
 }
 
 type Closest struct {
-	Key   interface{} `swaggertype:"string"` // 用户自定义的key, 可以是身份证号，可以是文件路径等
-	Score float32
+	Key   interface{} `swaggertype:"string" json:"key"` // 用户自定义的key, 可以是身份证号，可以是文件路径等
+	Score float32     `json:"score"`
 }
 
 func NewEngine() (*Engine, error) {

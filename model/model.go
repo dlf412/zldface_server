@@ -26,7 +26,7 @@ type FaceUser struct {
 	Uid           string      `json:"uid" gorm:"comment:user id; uniqueIndex; not null; size:50"`
 	Name          string      `json:"name" gorm:"comment:user名称; not null; size:20"`
 	FaceFeature   []byte      `json:"faceFeature" gorm:"comment:user人脸特征; size:1032"`
-	FaceImagePath string      `json:"-" gorm:"comment:user人脸路径; size:255"`
+	FaceImagePath string      `json:"faceImagePath" gorm:"comment:user人脸路径; size:255"`
 	Groups        []FaceGroup `json:"-" gorm:"many2many:face_group_users"`
 }
 

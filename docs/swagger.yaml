@@ -15,6 +15,8 @@ definitions:
         items:
           type: integer
         type: array
+      faceImagePath:
+        type: string
       id:
         type: integer
       name:
@@ -22,19 +24,13 @@ definitions:
       uid:
         type: string
     type: object
-  recognition.Closest:
-    properties:
-      key:
-        description: 用户自定义的key, 可以是身份证号，可以是文件路径等
-        type: string
-      score:
-        type: number
-    type: object
   request.FaceGroup:
     properties:
       gid:
+        description: 分组id
         type: string
       name:
+        description: 分组名
         type: string
     required:
     - gid
@@ -43,14 +39,26 @@ definitions:
   request.FaceGroupUser:
     properties:
       gid:
+        description: 分组id
         type: string
       uids:
+        description: 用户id列表
         items:
           type: string
         type: array
     required:
     - gid
     - uids
+    type: object
+  response.FaceMatchResult:
+    properties:
+      filePath:
+        type: string
+      key:
+        description: 用户自定义的key, 可以是身份证号，可以是文件路径等
+        type: string
+      score:
+        type: number
     type: object
 host: localhost:8888
 info:
@@ -126,7 +134,7 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: post a faceFile to match a user in a group.
+      description: post a faceFile to match a user in a group and save the faceFile.
       parameters:
       - description: faceFile
         in: formData
@@ -144,7 +152,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/recognition.Closest'
+            $ref: '#/definitions/response.FaceMatchResult'
       summary: Match a user
   /users/v1:
     post:
@@ -170,9 +178,10 @@ paths:
         name: gid
         type: string
       - description: 人脸特征文件, binary格式
+        format: binary
         in: formData
         name: faceFeature
-        type: file
+        type: string
       - description: 人脸照片路径（服务器已存在的相对路径）
         in: formData
         name: faceImagePath
