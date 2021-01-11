@@ -8,9 +8,9 @@ import (
 )
 
 type G_MODEL struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
@@ -18,16 +18,16 @@ type FaceGroup struct {
 	G_MODEL
 	Gid   string     `json:"gid" gorm:"comment:group id; uniqueIndex; not null; size:50"`
 	Name  string     `json:"name" gorm:"comment:group名称; not null"`
-	Users []FaceUser `json:"users" gorm:"many2many:face_group_users"`
+	Users []FaceUser `json:"-" gorm:"many2many:face_group_users"`
 }
 
 type FaceUser struct {
 	G_MODEL
 	Uid           string      `json:"uid" gorm:"comment:user id; uniqueIndex; not null; size:50"`
 	Name          string      `json:"name" gorm:"comment:user名称; not null; size:20"`
-	FaceFeature   []byte      `json:"faceFeature" gorm:"comment:user人脸特征; size:1032"`
-	FaceImagePath string      `json:"faceImg" gorm:"comment:user人脸路径;size:255"`
-	Groups        []FaceGroup `json:"groups" gorm:"many2many:face_group_users"`
+	FaceFeature   []byte      `json:"-" gorm:"comment:user人脸特征; size:1032"`
+	FaceImagePath string      `json:"-" gorm:"comment:user人脸路径;size:255"`
+	Groups        []FaceGroup `json:"-" gorm:"many2many:face_group_users"`
 }
 
 func (g *FaceGroup) FaceFeatures() map[interface{}][]byte {

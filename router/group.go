@@ -16,7 +16,7 @@ func InitGroupRouter(Router *gin.RouterGroup) {
 	}
 	GroupUserRouter := Router.Group("group/users")
 	{
-		GroupUserRouter.POST("v1", v1.GreateGroupUser)
+		GroupUserRouter.POST("v1", v1.CreateGroupUser)
 		GroupUserRouter.DELETE("v1", v1.DeleteGroupUser)
 	}
 }

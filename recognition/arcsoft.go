@@ -95,7 +95,7 @@ func (e *Engine) DetectFace(img interface{}) (*FaceImage, error) {
 	}
 	singleFaceInfoArr := GetSingleFaceInfo(info)
 	if len(singleFaceInfoArr) == 0 {
-		return nil, err
+		return nil, errors.New("未检测到人脸")
 	}
 	face.SingleFaceInfo = singleFaceInfoArr[0]
 	return &face, nil

@@ -1,0 +1,196 @@
+basePath: /
+definitions:
+  model.FaceGroup:
+    properties:
+      gid:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  model.FaceUser:
+    properties:
+      faceFeature:
+        items:
+          type: integer
+        type: array
+      faceImg:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      uid:
+        type: string
+    type: object
+  recognition.Closest:
+    properties:
+      key:
+        description: 用户自定义的key, 可以是身份证号，可以是文件路径等
+        type: object
+      score:
+        type: number
+    type: object
+  request.FaceGroup:
+    properties:
+      gid:
+        type: string
+      name:
+        type: string
+    required:
+    - gid
+    - name
+    type: object
+  request.FaceGroupUser:
+    properties:
+      gid:
+        type: string
+      uids:
+        items:
+          type: string
+        type: array
+    required:
+    - gid
+    - uids
+    type: object
+host: localhost:8888
+info:
+  contact:
+    email: denglingfei@zlddata.cn
+    name: DengLingfei
+  description: This a face recognition server using arcsoft face engine
+  license:
+    name: Apache2.0
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /group/users/v1:
+    delete:
+      consumes:
+      - application/json
+      description: delete users from a group
+      parameters:
+      - description: 分组id, 用户uid列表
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.FaceGroupUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"msg":"删除成功"}'
+          schema:
+            type: string
+      summary: delete group users
+    post:
+      consumes:
+      - application/json
+      description: add users to a group
+      parameters:
+      - description: 分组id, 用户uid列表
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.FaceGroupUser'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: '{"msg":"添加成功"}'
+          schema:
+            type: string
+      summary: Create group users
+  /groups/v1:
+    post:
+      consumes:
+      - application/json
+      description: create a group using gid and name
+      parameters:
+      - description: group id, group name
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/request.FaceGroup'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.FaceGroup'
+      summary: Greate a group
+  /user/match/v1:
+    post:
+      consumes:
+      - multipart/form-data
+      description: post a faceFile to match a user in a group.
+      parameters:
+      - description: faceFile
+        in: formData
+        name: faceFile
+        required: true
+        type: file
+      - description: group id
+        in: formData
+        name: gid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/recognition.Closest'
+      summary: Match a user
+  /users/v1:
+    post:
+      consumes:
+      - multipart/form-data
+      description: create a user with faceFile or faceFeature.
+      parameters:
+      - description: user id
+        in: formData
+        name: uid
+        required: true
+        type: string
+      - description: name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: faceFile
+        in: formData
+        name: faceFile
+        type: file
+      - description: group id
+        in: formData
+        name: gid
+        type: string
+      - description: 人脸特征文件, binary格式
+        in: formData
+        name: faceFeature
+        type: file
+      - description: 人脸照片路径（服务器已存在的相对路径）
+        in: formData
+        name: FaceImagePath
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.FaceUser'
+      summary: Create a user
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

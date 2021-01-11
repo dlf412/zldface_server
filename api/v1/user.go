@@ -13,11 +13,24 @@ import (
 	"zldface_server/model/request"
 )
 
+//  godoc
+// @Summary Create a user
+// @Description create a user with faceFile or faceFeature.
+// @Accept  multipart/form-data
+// @Produce  json
+// @param uid formData string true "user id"
+// @param name formData string true "name"
+// @Param faceFile formData file false "faceFile文件"
+// @param gid formData string false "group id"
+// @param faceFeature formData file false "人脸特征文件, binary格式"
+// @param FaceImagePath formData string false "人脸照片路径（服务器已存在的相对路径）"
+// @Success 201 {object} model.FaceUser
+// @Router /users/v1 [post]
 func CreateUser(c *gin.Context) {
 	var U request.FaceUser
 	if err := c.Bind(&U); err != nil {
 		config.Logger.Info(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
 
@@ -39,7 +52,7 @@ func CreateUser(c *gin.Context) {
 		faceFile, err := U.FaceFile.Open()
 		if err != nil {
 			config.Logger.Error("打开文件失败", zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
 			return
 		}
 
@@ -49,7 +62,7 @@ func CreateUser(c *gin.Context) {
 		user.FaceFeature, err = recognition.FeatureByteArr(faceFile)
 		if err != nil {
 			config.Logger.Warn("图片提取人脸特征失败", zap.Error(err))
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 			return
 		} else {
 			go func(f string) {
@@ -61,7 +74,7 @@ func CreateUser(c *gin.Context) {
 			ff, err := U.FaceFeature.Open()
 			if err != nil {
 				config.Logger.Error("读取FaceFeature数据失败", zap.Error(err))
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
 				return
 			}
 			defer ff.Close()
@@ -72,34 +85,33 @@ func CreateUser(c *gin.Context) {
 			user.FaceFeature, err = recognition.FeatureByteArr(config.RegDir + "/" + user.FaceImagePath)
 			if err != nil {
 				config.Logger.Warn("图片提取人脸特征失败", zap.Error(err))
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 				return
 			}
 		}
 	}
-
-	if len(user.FaceImagePath) > 0 {
-		go func(f string) {
-			c.SaveUploadedFile(U.FaceFile, config.RegDir+"/"+f)
-		}(user.FaceImagePath)
-		if user.FaceFeature == nil || len(user.FaceFeature) == 0 {
-
-		}
-
-	}
 	if err := config.DB.Create(&user).Error; err != nil {
 		config.Logger.Error("保存数据失败", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "创建成功"})
+	c.JSON(http.StatusCreated, user)
 }
 
+//  godoc
+// @Summary Match a user
+// @Description post a faceFile to match a user in a group.
+// @Accept  multipart/form-data
+// @Param faceFile formData file true "faceFile"
+// @param gid formData string true "group id"
+// @Produce  json
+// @Success 201 {object} recognition.Closest
+// @Router /user/match/v1 [post]
 func MatchUser(c *gin.Context) {
 	var M request.FaceUserMatch
 	if err := c.Bind(&M); err != nil {
 		config.Logger.Info(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
 
@@ -107,13 +119,13 @@ func MatchUser(c *gin.Context) {
 	group := new(model.FaceGroup)
 	config.DB.Where("`Gid`=?", M.Gid).First(group)
 	if group.ID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "group不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"err": "group不存在"})
 		return
 	}
 	eng, err := recognition.NewEngine()
 	if err != nil {
 		config.Logger.Error(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "人脸识别引擎初始化失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"err": "人脸识别引擎初始化失败"})
 		return
 	}
 	defer eng.Destroy()
@@ -124,13 +136,13 @@ func MatchUser(c *gin.Context) {
 	matches, err := eng.SearchN(ff, group.FaceFeatures(), 1, 0.8)
 	if err != nil {
 		config.Logger.Error("人脸查找发生错误", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "人脸匹配发生错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"err": "人脸匹配发生错误"})
 		return
 	}
 	if matches == nil || len(matches) == 0 {
-		c.JSON(http.StatusOK, gin.H{"message": "未匹配到任何人脸"})
+		c.JSON(http.StatusNotFound, gin.H{"err": "未匹配到任何人脸"})
 		return
 	}
 	config.Logger.Info("匹配成功", zap.Any("结果", matches[0]))
-	c.JSON(http.StatusOK, gin.H{"message": "成功匹配到人脸", "data": matches[0]})
+	c.JSON(http.StatusOK, matches[0])
 }

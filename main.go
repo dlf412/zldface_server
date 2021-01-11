@@ -36,6 +36,18 @@ func runserver() {
 	config.Logger.Error(s.ListenAndServe().Error())
 }
 
+// @title Swagger Example API
+// @version 1.0
+// @description This a face recognition server using arcsoft face engine
+// @contact.name DengLingfei
+// @contact.email denglingfei@zlddata.cn
+// @license.name Apache2.0
+// @host localhost:8888
+// @BasePath /
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 func main() {
 	config.Logger.Info(fmt.Sprintf("%v", config.Config))
 	config.Logger.Info(config.RedisCli.String())

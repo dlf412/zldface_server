@@ -10,26 +10,42 @@ import (
 	"zldface_server/model/request"
 )
 
+// CreateGroup godoc
+// @Summary Greate a group
+// @Description create a group using gid and name
+// @Accept  json
+// @Produce  json
+// @Param data body request.FaceGroup true "group id, group name"
+// @Success 201 {object} model.FaceGroup
+// @Router /groups/v1 [post]
 func CreateGroup(c *gin.Context) {
 
 	var G request.FaceGroup
 
 	if err := c.ShouldBindJSON(&G); err != nil {
 		config.Logger.Info(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
-	// group := &model.FaceGroup{Gid: G.Gid, Name:G.Name}
-	if err := config.DB.Create(&G).Error; err != nil {
+	group := &model.FaceGroup{Gid: G.Gid, Name: G.Name}
+	if err := config.DB.Create(&group).Error; err != nil {
 		config.Logger.Info(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "创建成功"})
-	config.Logger.Info("create group ok", zap.Any("group", G))
+	c.JSON(http.StatusCreated, group)
+	config.Logger.Info("create group ok", zap.Any("group", group))
 }
 
-func GreateGroupUser(c *gin.Context) {
+//  godoc
+// @Summary Create group users
+// @Description add users to a group
+// @Accept  json
+// @Produce  json
+// @Param data body request.FaceGroupUser true "分组id, 用户uid列表"
+// @Success 201 {string} string "{"msg":"添加成功"}"
+// @Router /group/users/v1 [post]
+func CreateGroupUser(c *gin.Context) {
 
 	var G request.FaceGroupUser
 
@@ -45,17 +61,25 @@ func GreateGroupUser(c *gin.Context) {
 	users := []model.FaceUser{}
 	ass := config.DB.Where("Gid = ?", G.Gid).First(&group).Association("Users")
 	if group.ID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "group不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"err": "group不存在"})
 		return
 	}
 	if len(G.Uids) > 0 {
 		config.DB.Where("`Uid` IN ?", G.Uids).Find(&users)
 		ass.Append(users)
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "添加成功"})
+	c.JSON(http.StatusCreated, gin.H{"msg": "添加成功"})
 	config.Logger.Info("create group users ok", zap.Any("group", G))
 }
 
+//  godoc
+// @Summary Delete group users
+// @Description delete users from a group
+// @Accept  json
+// @Produce  json
+// @Param data body request.FaceGroupUser true "分组id, 用户uid列表"
+// @Success 200 {string} string "{"msg":"删除成功"}"
+// @Router /group/users/v1 [delete]
 func DeleteGroupUser(c *gin.Context) {
 
 	var G request.FaceGroupUser
@@ -79,6 +103,6 @@ func DeleteGroupUser(c *gin.Context) {
 		config.DB.Where("`Uid` IN ?", G.Uids).Find(&users)
 		config.DB.Model(&group).Association("Users").Delete(users)
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"msg": "删除成功"})
 	config.Logger.Info("delete group users ok", zap.Any("group", G))
 }
