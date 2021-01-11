@@ -5,25 +5,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"io"
-	"zldface_server/model"
-	"zldface_server/recognition"
-	//"go.uber.org/zap"
 	"net/http"
 	"zldface_server/config"
+	"zldface_server/model"
 	"zldface_server/model/request"
+	"zldface_server/recognition"
 )
 
 //  godoc
-// @Summary Create a user
-// @Description create a user with faceFile or faceFeature.
+// @Summary Create or Update user
+// @Description create user if uid not exists else update
 // @Accept  multipart/form-data
 // @Produce  json
 // @param uid formData string true "user id"
-// @param name formData string true "name"
+// @param name formData string false "name"
 // @Param faceFile formData file false "faceFile文件"
 // @param gid formData string false "group id"
 // @param faceFeature formData file false "人脸特征文件, binary格式"
-// @param FaceImagePath formData string false "人脸照片路径（服务器已存在的相对路径）"
+// @param faceImagePath formData string false "人脸照片路径（服务器已存在的相对路径）"
 // @Success 201 {object} model.FaceUser
 // @Router /users/v1 [post]
 func CreateUser(c *gin.Context) {
@@ -43,9 +42,9 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if len(U.Gid) > 0 {
-		groups := []model.FaceGroup{}
-		config.DB.Where("Gid in ?", U.Gid).Find(&groups)
-		user.Groups = groups
+		group := model.FaceGroup{}
+		config.DB.Where("`Gid`=?", U.Gid).First(&group)
+		user.Groups = append(user.Groups, group)
 	}
 
 	if U.FaceFile != nil {
@@ -78,19 +77,23 @@ func CreateUser(c *gin.Context) {
 				return
 			}
 			defer ff.Close()
-			user.FaceFeature = make([]byte, 1032)
-			io.Copy(bytes.NewBuffer(user.FaceFeature), ff)
+			buf := new(bytes.Buffer)
+			io.Copy(buf, ff)
+			user.FaceFeature = buf.Bytes()
 		} else {
-			var err error
-			user.FaceFeature, err = recognition.FeatureByteArr(config.RegDir + "/" + user.FaceImagePath)
-			if err != nil {
-				config.Logger.Warn("图片提取人脸特征失败", zap.Error(err))
-				c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
-				return
+			if len(user.FaceImagePath) > 0 {
+				var err error
+				user.FaceFeature, err = recognition.FeatureByteArr(config.RegDir + "/" + user.FaceImagePath)
+				if err != nil {
+					config.Logger.Warn("图片提取人脸特征失败", zap.Error(err))
+					c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+					return
+				}
 			}
 		}
 	}
-	if err := config.DB.Create(&user).Error; err != nil {
+
+	if err := config.DB.Where("Uid=?", U.Uid).Assign(user).FirstOrCreate(&user).Error; err != nil {
 		config.Logger.Error("保存数据失败", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return

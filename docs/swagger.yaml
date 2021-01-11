@@ -15,8 +15,6 @@ definitions:
         items:
           type: integer
         type: array
-      faceImg:
-        type: string
       id:
         type: integer
       name:
@@ -28,7 +26,7 @@ definitions:
     properties:
       key:
         description: 用户自定义的key, 可以是身份证号，可以是文件路径等
-        type: object
+        type: string
       score:
         type: number
     type: object
@@ -84,7 +82,7 @@ paths:
           description: '{"msg":"删除成功"}'
           schema:
             type: string
-      summary: delete group users
+      summary: Delete group users
     post:
       consumes:
       - application/json
@@ -152,7 +150,7 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: create a user with faceFile or faceFeature.
+      description: create user if uid not exists else update
       parameters:
       - description: user id
         in: formData
@@ -162,9 +160,8 @@ paths:
       - description: name
         in: formData
         name: name
-        required: true
         type: string
-      - description: faceFile
+      - description: faceFile文件
         in: formData
         name: faceFile
         type: file
@@ -178,7 +175,7 @@ paths:
         type: file
       - description: 人脸照片路径（服务器已存在的相对路径）
         in: formData
-        name: FaceImagePath
+        name: faceImagePath
         type: string
       produces:
       - application/json
@@ -187,7 +184,7 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/model.FaceUser'
-      summary: Create a user
+      summary: Create or Update user
 securityDefinitions:
   ApiKeyAuth:
     in: header

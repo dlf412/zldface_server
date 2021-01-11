@@ -68,7 +68,7 @@ var doc = `{
                 "produces": [
                     "application/json"
                 ],
-                "summary": "delete group users",
+                "summary": "Delete group users",
                 "parameters": [
                     {
                         "description": "分组id, 用户uid列表",
@@ -159,14 +159,14 @@ var doc = `{
         },
         "/users/v1": {
             "post": {
-                "description": "create a user with faceFile or faceFeature.",
+                "description": "create user if uid not exists else update",
                 "consumes": [
                     "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Create a user",
+                "summary": "Create or Update user",
                 "parameters": [
                     {
                         "type": "string",
@@ -179,12 +179,11 @@ var doc = `{
                         "type": "string",
                         "description": "name",
                         "name": "name",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "file",
-                        "description": "faceFile",
+                        "description": "faceFile文件",
                         "name": "faceFile",
                         "in": "formData"
                     },
@@ -203,7 +202,7 @@ var doc = `{
                     {
                         "type": "string",
                         "description": "人脸照片路径（服务器已存在的相对路径）",
-                        "name": "FaceImagePath",
+                        "name": "faceImagePath",
                         "in": "formData"
                     }
                 ],
@@ -242,9 +241,6 @@ var doc = `{
                         "type": "integer"
                     }
                 },
-                "faceImg": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -261,7 +257,7 @@ var doc = `{
             "properties": {
                 "key": {
                     "description": "用户自定义的key, 可以是身份证号，可以是文件路径等",
-                    "type": "object"
+                    "type": "string"
                 },
                 "score": {
                     "type": "number"
