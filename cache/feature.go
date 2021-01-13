@@ -48,8 +48,12 @@ func GetGroupFeatures(group *model.FaceGroup) map[string]interface{} {
 	}
 }
 
-func DelGroupFeatures(gid string, uids []string) (err error) {
+func DelGroupFeatures(gid string, users []model.FaceUser) (err error) {
 	hkey := fmt.Sprintf("face_group#%s", gid)
+	uids := make([]string, len(users))
+	for idx, u := range users {
+		uids[idx] = u.Uid
+	}
 	return config.RedisCli.HDel(config.Rctx, hkey, uids...).Err()
 }
 
