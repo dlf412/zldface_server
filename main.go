@@ -56,10 +56,13 @@ func main() {
 	config.Logger.Info(config.RegDir)
 	config.Logger.Info(config.VerDir)
 
-	// 启动协程异步更新，增加和删除人脸库
+	// 启动协程加载人脸库
 	go func() {
 		cache.LoadAllFeatures()
 	}()
+	// 启动协程
+
+	go cache.Run()
 	// 启动web服务
 	runserver()
 

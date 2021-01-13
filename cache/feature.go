@@ -61,6 +61,7 @@ func AddGroupFeatures(gid string, users []model.FaceUser) (err error) {
 		}
 		err = config.RedisCli.HSet(config.Rctx, hkey, u.Uid, u.FaceFeature).Err()
 		if err != nil {
+			config.Logger.Error("group增加人脸特征失败", zap.String("group", gid), zap.String("user", u.Uid))
 			return
 		}
 	}
