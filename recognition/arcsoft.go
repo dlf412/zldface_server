@@ -160,7 +160,7 @@ func (e *Engine) CompareFeature(f1, f2 interface{}) (score float32, err error) {
 	return e.FaceFeatureCompareEx(feature1, feature2)
 }
 
-func (e *Engine) SearchN(f1 interface{}, byteFeatures map[interface{}][]byte, top int, threshold float32) ([]Closest, error) {
+func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, top int, threshold float32) ([]Closest, error) {
 	var feature1 []byte
 	switch f1.(type) {
 	case []byte:
@@ -212,7 +212,7 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[interface{}][]byte, to
 
 	// 通道发送任务
 	for k, v := range byteFeatures {
-		tasks <- map[interface{}][]byte{k: v}
+		tasks <- map[interface{}][]byte{k: v.([]byte)}
 	}
 	// 通道接收结果
 	res := []Closest{}

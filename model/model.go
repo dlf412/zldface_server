@@ -8,7 +8,7 @@ import (
 )
 
 type G_MODEL struct {
-	ID        uint           `gorm:"primarykey" json:"id"`
+	ID        uint           `gorm:"primarykey" json:"id,omitempty"`
 	CreatedAt time.Time      `json:"-"`
 	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -25,17 +25,18 @@ type FaceUser struct {
 	G_MODEL
 	Uid           string      `json:"uid" gorm:"comment:user id; uniqueIndex; not null; size:50"`
 	Name          string      `json:"name" gorm:"comment:user名称; not null; size:20"`
-	FaceFeature   []byte      `json:"faceFeature" gorm:"comment:user人脸特征; size:1032"`
-	FaceImagePath string      `json:"faceImagePath" gorm:"comment:user人脸路径; size:255"`
+	FaceFeature   []byte      `json:"faceFeature,omitempty" gorm:"comment:user人脸特征; size:1032"`
+	FaceImagePath string      `json:"faceImagePath" gorm:"comment:人脸照路径; size:255"`
+	IdImagePath   string      `json:"idImagePath" gorm:"comment:身份证人脸照路径; size:255"`
 	Groups        []FaceGroup `json:"-" gorm:"many2many:face_group_users"`
 }
 
-func (g *FaceGroup) FaceFeatures() map[interface{}][]byte {
+func (g *FaceGroup) FaceFeatures() map[string]interface{} {
 
 	users := []FaceUser{}
 	config.DB.Model(g).Association("Users").Find(&users)
 
-	features := map[interface{}][]byte{}
+	features := make(map[string]interface{}, 0)
 	for _, v := range users {
 		if len(v.FaceFeature) == 1032 {
 			features[v.Uid] = v.FaceFeature
@@ -44,4 +45,12 @@ func (g *FaceGroup) FaceFeatures() map[interface{}][]byte {
 		}
 	}
 	return features
+}
+
+func (u FaceUser) LockID() string {
+	return u.Uid
+}
+
+func (g FaceGroup) LockID() string {
+	return g.Gid
 }

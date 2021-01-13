@@ -14,7 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	features := map[interface{}][]byte{}
+	features := map[string]interface{}{}
 
 	if f, err := os.Open("test_features"); err == nil {
 		dec := gob.NewDecoder(f)
@@ -41,7 +41,6 @@ func main() {
 	}
 
 	println(len(features))
-	println(len(features["face/1.jpg"]))
 	bT := time.Now()
 	// 开始时间
 	for _, v := range features {

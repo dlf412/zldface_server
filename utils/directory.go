@@ -1,6 +1,10 @@
 package utils
 
-import "os"
+import (
+	"io"
+	"os"
+	"path"
+)
 
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -12,7 +16,6 @@ func PathExists(path string) (bool, error) {
 	}
 	return false, err
 }
-
 
 func CreateDir(dirs ...string) (err error) {
 	for _, v := range dirs {
@@ -27,5 +30,19 @@ func CreateDir(dirs ...string) (err error) {
 			}
 		}
 	}
+	return err
+}
+
+func SaveFile(src io.ReadSeeker, dst string) error {
+	if err := CreateDir(path.Dir(dst)); err != nil {
+		return err
+	}
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, src)
+	src.Seek(0, io.SeekStart)
 	return err
 }

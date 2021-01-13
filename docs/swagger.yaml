@@ -1,4 +1,4 @@
-basePath: /
+basePath: /face/
 definitions:
   model.FaceGroup:
     properties:
@@ -19,6 +19,8 @@ definitions:
         type: string
       id:
         type: integer
+      idImagePath:
+        type: string
       name:
         type: string
       uid:
@@ -68,7 +70,7 @@ info:
   description: This a face recognition server using arcsoft face engine
   license:
     name: Apache2.0
-  title: Swagger Example API
+  title: 智链达人脸录入和识别服务API
   version: "1.0"
 paths:
   /group/users/v1:
@@ -169,9 +171,13 @@ paths:
         in: formData
         name: name
         type: string
-      - description: faceFile文件
+      - description: 人脸照片
         in: formData
         name: faceFile
+        type: file
+      - description: 身份证人面照
+        in: formData
+        name: idFile
         type: file
       - description: group id
         in: formData
@@ -194,6 +200,23 @@ paths:
           schema:
             $ref: '#/definitions/model.FaceUser'
       summary: Create or Update user
+  /users/v1/{uid}:
+    get:
+      description: get user by uid if
+      parameters:
+      - description: user id
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FaceUser'
+      summary: get user by uid
 securityDefinitions:
   ApiKeyAuth:
     in: header

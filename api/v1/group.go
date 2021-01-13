@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
+	"zldface_server/cache"
 	"zldface_server/config"
 	"zldface_server/model"
 	"zldface_server/model/request"
@@ -66,7 +67,16 @@ func CreateGroupUser(c *gin.Context) {
 	}
 	if len(G.Uids) > 0 {
 		config.DB.Where("`Uid` IN ?", G.Uids).Find(&users)
-		ass.Append(users)
+		lock := cache.Mutex(group)
+		lock.Lock()
+		defer lock.Unlock()
+		err := ass.Append(users)
+		if err != nil {
+			config.Logger.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"err": "数据库操作错误"})
+			return
+		}
+		cache.AddUserCh <- map[string][]model.FaceUser{G.Gid: users}
 	}
 	c.JSON(http.StatusCreated, gin.H{"msg": "添加成功"})
 	config.Logger.Info("create group users ok", zap.Any("group", G))
@@ -101,7 +111,16 @@ func DeleteGroupUser(c *gin.Context) {
 	}
 	if len(G.Uids) > 0 {
 		config.DB.Where("`Uid` IN ?", G.Uids).Find(&users)
-		config.DB.Model(&group).Association("Users").Delete(users)
+		lock := cache.Mutex(group)
+		lock.Lock()
+		defer lock.Unlock()
+		err := config.DB.Model(&group).Association("Users").Delete(users)
+		if err != nil {
+			config.Logger.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"err": "数据库操作错误"})
+			return
+		}
+		cache.DelUserCh <- map[string][]string{G.Gid: G.Uids}
 	}
 	c.JSON(http.StatusOK, gin.H{"msg": "删除成功"})
 	config.Logger.Info("delete group users ok", zap.Any("group", G))

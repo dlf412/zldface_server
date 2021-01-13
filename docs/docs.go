@@ -183,8 +183,14 @@ var doc = `{
                     },
                     {
                         "type": "file",
-                        "description": "faceFile文件",
+                        "description": "人脸照片",
                         "name": "faceFile",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "身份证人面照",
+                        "name": "idFile",
                         "in": "formData"
                     },
                     {
@@ -210,6 +216,32 @@ var doc = `{
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.FaceUser"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/v1/{uid}": {
+            "get": {
+                "description": "get user by uid if",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "get user by uid",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "user id",
+                        "name": "uid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.FaceUser"
                         }
@@ -247,6 +279,9 @@ var doc = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "idImagePath": {
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -331,9 +366,9 @@ type swaggerInfo struct {
 var SwaggerInfo = swaggerInfo{
 	Version:     "1.0",
 	Host:        "localhost:8888",
-	BasePath:    "/",
+	BasePath:    "/face/",
 	Schemes:     []string{},
-	Title:       "Swagger Example API",
+	Title:       "智链达人脸录入和识别服务API",
 	Description: "This a face recognition server using arcsoft face engine",
 }
 

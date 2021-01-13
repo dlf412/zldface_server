@@ -8,7 +8,8 @@ import (
 func InitUserRouter(Router *gin.RouterGroup) {
 	UserRouter := Router.Group("users")
 	{
-		UserRouter.POST("v1", v1.CreateUser) // 创建Api
+		UserRouter.POST("v1", v1.CreateUser)  // 创建
+		UserRouter.GET("v1/:uid", v1.GetUser) // 根据user_id获取
 		//FaceRouter.DELETE("v1", v1.DeleteFace)   // 删除Api
 		//FaceRouter.GET("v1", v1.GetFaceList) // 获取Api列表
 		//FaceRouter.GET("v1/:id", v1.GetFaceById) // 获取单条Api消息

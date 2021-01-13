@@ -2,7 +2,7 @@
     "swagger": "2.0",
     "info": {
         "description": "This a face recognition server using arcsoft face engine",
-        "title": "Swagger Example API",
+        "title": "智链达人脸录入和识别服务API",
         "contact": {
             "name": "DengLingfei",
             "email": "denglingfei@zlddata.cn"
@@ -13,7 +13,7 @@
         "version": "1.0"
     },
     "host": "localhost:8888",
-    "basePath": "/",
+    "basePath": "/face/",
     "paths": {
         "/group/users/v1": {
             "post": {
@@ -168,8 +168,14 @@
                     },
                     {
                         "type": "file",
-                        "description": "faceFile文件",
+                        "description": "人脸照片",
                         "name": "faceFile",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "身份证人面照",
+                        "name": "idFile",
                         "in": "formData"
                     },
                     {
@@ -195,6 +201,32 @@
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.FaceUser"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/v1/{uid}": {
+            "get": {
+                "description": "get user by uid if",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "get user by uid",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "user id",
+                        "name": "uid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.FaceUser"
                         }
@@ -232,6 +264,9 @@
                 },
                 "id": {
                     "type": "integer"
+                },
+                "idImagePath": {
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"

@@ -24,7 +24,7 @@ func Routers() *gin.Engine {
 	//{
 	//	router.InitBaseRouter(PublicGroup) // 注册基础功能路由 不做鉴权
 	//}
-	PrivateGroup := Router.Group("")
+	PrivateGroup := Router.Group("/face")
 	if !config.Debug {
 		if config.Config.Auth == "ZldAuth" {
 			PrivateGroup.Use(middleware.ZldAuth())

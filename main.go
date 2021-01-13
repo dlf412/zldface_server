@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"time"
+	"zldface_server/cache"
 	"zldface_server/config"
 	//"zldface_server/model/request"
 	"zldface_server/router"
@@ -36,14 +37,14 @@ func runserver() {
 	config.Logger.Error(s.ListenAndServe().Error())
 }
 
-// @title Swagger Example API
+// @title 智链达人脸录入和识别服务API
 // @version 1.0
 // @description This a face recognition server using arcsoft face engine
 // @contact.name DengLingfei
 // @contact.email denglingfei@zlddata.cn
 // @license.name Apache2.0
 // @host localhost:8888
-// @BasePath /
+// @BasePath /face/
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
@@ -56,7 +57,9 @@ func main() {
 	config.Logger.Info(config.VerDir)
 
 	// 启动协程异步更新，增加和删除人脸库
-
+	go func() {
+		cache.LoadAllFeatures()
+	}()
 	// 启动web服务
 	runserver()
 

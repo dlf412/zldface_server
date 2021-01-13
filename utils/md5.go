@@ -19,12 +19,13 @@ func MD5V(str []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func MD5sum(r io.Reader) string {
+func MD5sum(r io.ReadSeeker) string {
 	br := bufio.NewReader(r)
 	h := md5.New()
 	_, err := io.Copy(h, br)
 	if err != nil {
 		return ""
 	}
+	r.Seek(0, io.SeekStart)
 	return hex.EncodeToString(h.Sum(nil))
 }
