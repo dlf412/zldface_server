@@ -20,7 +20,8 @@ redis:
 # system configuration
 system:
   debug: ${DEBUG:True}
-  addr: 8888
+  addr: 8889
+  multipoint: true # 是否多节点部署
 
 # mysql connect configuration
 mysql:
@@ -34,11 +35,12 @@ mysql:
   max-open-conns: 100
   log-mode: false
   log-zap: "warn"
+  slow-log: 200  # 慢日志200ms, DEBUG模式为1ms
 
 # storage configuration
 storage:
-  regdir: ${REGISTER_IMG_DIR:face/reg/}
-  verdir: ${HPFACE_IMG_DIR:face/ver/}
+  regdir: ${REGISTER_IMG_DIR:face/reg/}  # 注册人脸照片路径
+  verdir: ${HPFACE_IMG_DIR:face/ver/}  # 识别人脸照片路径
 
-# 认证方式
+# 认证方式, 可自定义实现, 然后修改配置. DEBUG=True不开启认证
 auth: 'ZldAuth'

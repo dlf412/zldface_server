@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -11,11 +10,12 @@ import (
 	"zldface_server/config"
 )
 
-var ctx = context.Background()
-
-// 智链达Sid认证  Authorization:SID $sid
+// Sid认证  Authorization:SID $sid
 func ZldAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if config.RedisCli == nil { // 单点模式ZldAuth无效
+			return
+		}
 		sid := c.Request.Header.Get("Authorization")
 		if len(sid) == 0 {
 			c.JSON(http.StatusUnauthorized, gin.H{"detail": "未传SID"})
@@ -30,7 +30,7 @@ func ZldAuth() gin.HandlerFunc {
 		}
 		token := ":1:" + s[1]
 		// 从redis cache里查找对应的token, 看是否存在
-		user, err := config.RedisCli.Get(ctx, token).Result()
+		user, err := config.RedisCli.Get(config.Rctx, token).Result()
 		if err == redis.Nil {
 			c.JSON(http.StatusForbidden, gin.H{"detail": "无效SID"})
 			c.Abort()

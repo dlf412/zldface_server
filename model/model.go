@@ -36,7 +36,7 @@ func (g *FaceGroup) FaceFeatures() map[string]interface{} {
 	users := []FaceUser{}
 	config.DB.Model(g).Association("Users").Find(&users)
 
-	features := make(map[string]interface{}, 0)
+	features := map[string]interface{}{}
 	for _, v := range users {
 		if len(v.FaceFeature) == 1032 {
 			features[v.Uid] = v.FaceFeature

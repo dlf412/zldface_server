@@ -10,8 +10,9 @@ import (
 )
 
 type system struct {
-	Debug bool `yaml:"debug"`
-	Addr  int  `yaml:"addr"`
+	Debug      bool `yaml:"debug"`
+	Addr       int  `yaml:"addr"`
+	MultiPoint bool `yaml:"multipoint"`
 }
 
 type storage struct {
@@ -33,7 +34,7 @@ var RedisCli *redis.Client
 var Logger = ZldLog{}
 var DB *gorm.DB
 var RegDir, VerDir string
-var Debug bool
+var Debug, MultiPoint bool
 
 func init() {
 	viper.SetConfigName("config")
@@ -54,8 +55,11 @@ func init() {
 	if err != nil {
 		log.Fatalf("unable to decode into struct, %v", err)
 	}
+	MultiPoint = Config.System.MultiPoint
 
-	RedisCli = Config.Redis.Init()
+	if MultiPoint {
+		RedisCli = Config.Redis.Init()
+	}
 	Logger.Logger = Config.Zap.Init()
 	DB = Config.Mysql.Init()
 

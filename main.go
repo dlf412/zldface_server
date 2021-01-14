@@ -51,24 +51,14 @@ func runserver() {
 
 func main() {
 	config.Logger.Info(fmt.Sprintf("%v", config.Config))
-	config.Logger.Info(config.RedisCli.String())
-	config.Logger.Info(fmt.Sprintf("%v", *config.DB))
-	config.Logger.Info(config.RegDir)
-	config.Logger.Info(config.VerDir)
-
-	// 启动协程加载人脸库
-	go func() {
-		cache.LoadAllFeatures()
-	}()
-	// 启动协程
-
-	go cache.Run()
-	// 启动web服务
+	cache.BeRun()
 	runserver()
 
 	db, _ := config.DB.DB()
 	defer db.Close()
-	defer config.RedisCli.Close()
+	if config.RedisCli != nil {
+		defer config.RedisCli.Close()
+	}
 }
 
 //import "github.com/gin-gonic/gin"

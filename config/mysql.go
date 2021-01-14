@@ -18,6 +18,7 @@ type mysql_cfg struct {
 	MaxOpenConns int    `mapstructure:"max-open-conns" json:"maxOpenConns" yaml:"max-open-conns"`
 	LogMode      bool   `mapstructure:"log-mode" json:"logMode" yaml:"log-mode"`
 	LogZap       string `mapstructure:"log-zap" json:"logZap" yaml:"log-zap"`
+	SlowLog      int    `mapstructure:"slow-log" json:"slowLog" yaml:"slow-log"`
 }
 
 func (m mysql_cfg) Init() *gorm.DB {
@@ -42,8 +43,12 @@ func (m mysql_cfg) Init() *gorm.DB {
 
 func gormConfig(mod bool) *gorm.Config {
 	var config = &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true}
+	slog_time := time.Duration(Config.Mysql.SlowLog)
+	if Debug {
+		slog_time = time.Millisecond
+	}
 	var log_conf = logger.Config{
-		SlowThreshold: 1 * time.Millisecond,
+		SlowThreshold: slog_time,
 		LogLevel:      logger.Warn,
 		Colorful:      true,
 	}

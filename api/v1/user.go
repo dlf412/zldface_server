@@ -143,7 +143,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if user.FaceFeature != nil {
-		lock := cache.Mutex(user)
+		lock := cache.Mutex(user, config.MultiPoint)
 		lock.Lock()
 		if err := config.DB.Where("Uid=?", U.Uid).Assign(user).FirstOrCreate(&user).Error; err != nil {
 			config.Logger.Error("保存数据失败", zap.Error(err))
@@ -151,7 +151,12 @@ func CreateUser(c *gin.Context) {
 			lock.Unlock()
 			return
 		}
-		cache.UpdateUserCh <- &user
+		if !config.MultiPoint {
+			cache.UpdateUserCh <- &user // 单机模式支持异步更新
+		} else {
+
+			cache.UpdateUserFeature(&user) // TODO:这个性能会比较慢，需要分布式队列支持
+		}
 		lock.Unlock()
 	} else {
 		if err := config.DB.Where("Uid=?", U.Uid).Assign(user).FirstOrCreate(&user).Error; err != nil {
@@ -160,9 +165,13 @@ func CreateUser(c *gin.Context) {
 			return
 		}
 	}
-	user.FaceFeature = nil // 忽略FaceFeature的返回
 	wg.Wait()
-	c.JSON(http.StatusCreated, user)
+	c.JSON(http.StatusCreated, model.FaceUser{
+		Uid:           user.Uid,
+		Name:          user.Name,
+		FaceImagePath: user.FaceImagePath,
+		IdImagePath:   user.IdImagePath,
+	})
 }
 
 //  godoc
