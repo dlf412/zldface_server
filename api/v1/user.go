@@ -154,8 +154,7 @@ func CreateUser(c *gin.Context) {
 		if !config.MultiPoint {
 			cache.UpdateUserCh <- &user // 单机模式支持异步更新
 		} else {
-
-			cache.UpdateUserFeature(&user) // TODO:这个性能会比较慢，需要分布式队列支持
+			config.RedisCli.LPush(config.Rctx, "update_face_queue", user.Uid+"@#$"+utils.Bytes2str(user.FaceFeature))
 		}
 		lock.Unlock()
 	} else {

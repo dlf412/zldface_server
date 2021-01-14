@@ -43,7 +43,7 @@ func (m mysql_cfg) Init() *gorm.DB {
 
 func gormConfig(mod bool) *gorm.Config {
 	var config = &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true}
-	slog_time := time.Duration(Config.Mysql.SlowLog)
+	slog_time := time.Millisecond * time.Duration(Config.Mysql.SlowLog)
 	if Debug {
 		slog_time = time.Millisecond
 	}
