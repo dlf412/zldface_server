@@ -21,7 +21,7 @@ redis:
 system:
   debug: ${DEBUG:True}
   addr: 8888
-  multipoint: true # 是否多节点部署
+  multipoint: false # 是否多节点部署
 
 # mysql connect configuration
 mysql:

@@ -151,11 +151,7 @@ func CreateUser(c *gin.Context) {
 			lock.Unlock()
 			return
 		}
-		if !config.MultiPoint {
-			cache.UpdateUserCh <- &user // 单机模式支持异步更新
-		} else {
-			config.RedisCli.LPush(config.Rctx, "update_face_queue", user.Uid+"@#$"+utils.Bytes2str(user.FaceFeature))
-		}
+		cache.UpdateUserFeature(user.Uid, user.FaceFeature)
 		lock.Unlock()
 	} else {
 		if err := config.DB.Where("Uid=?", U.Uid).Assign(user).FirstOrCreate(&user).Error; err != nil {
@@ -165,6 +161,11 @@ func CreateUser(c *gin.Context) {
 		}
 	}
 	wg.Wait()
+
+	for _, g := range U.Gid {
+		cache.AddGroupFeatures(g, user.Uid)
+	}
+
 	c.JSON(http.StatusCreated, model.FaceUser{
 		Uid:           user.Uid,
 		Name:          user.Name,

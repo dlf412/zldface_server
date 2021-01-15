@@ -3,9 +3,11 @@ package recognition
 import (
 	"errors"
 	"os"
+	"reflect"
 	"sort"
 	"sync"
 	"time"
+	"zldface_server/utils"
 )
 
 var appid, key = os.Getenv("ARCSOFT_FACE_APPID"), os.Getenv("ARCSOFT_FACE_KEY")
@@ -212,7 +214,16 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 
 	// 通道发送任务
 	for k, v := range byteFeatures {
-		tasks <- map[interface{}][]byte{k: v.([]byte)}
+		switch v.(type) {
+		case []byte:
+			tasks <- map[interface{}][]byte{k: v.([]byte)}
+		case string:
+			tasks <- map[interface{}][]byte{k: utils.Str2bytes(v.(string))}
+		case *interface{}:
+			tasks <- map[interface{}][]byte{k: (*v.(*interface{})).([]byte)}
+		default:
+			tasks <- map[interface{}][]byte{k: reflect.ValueOf(v).Elem().Interface().([]byte)}
+		}
 	}
 	// 通道接收结果
 	res := []Closest{}

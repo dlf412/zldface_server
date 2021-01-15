@@ -1,127 +1,136 @@
 package cache
 
 import (
-	"fmt"
 	"go.uber.org/zap"
-	"sync"
+	"strings"
+	"time"
 	"zldface_server/config"
 	"zldface_server/model"
-	"zldface_server/utils"
 )
 
-var a = sync.Map{}
-var faceMap = map[string]map[string]interface{}{}
+const group_prefix = "##face_group##"
+const user_prefix = "##face_user##"
 
-func setGroupFaces(hkey string, features map[string]interface{}) error {
-	if config.RedisCli != nil {
-		if err := config.RedisCli.HSet(config.Rctx, hkey, features).Err(); err != nil {
-			if err.Error() == "ERR wrong number of arguments for 'hset' command" {
-				for k, v := range features {
-					if err := config.RedisCli.HSet(config.Rctx, hkey, k, v).Err(); err != nil {
-						config.Logger.Error("加载人脸特征出错", zap.String("group", hkey), zap.Error(err))
-						return err
-					}
+var groupFace = map[string]map[string]interface{}{} // group
+var userFace = map[string]interface{}{}             // user
+
+func setUserFace(uid string, f []byte) (err error) {
+	if !config.MultiPoint {
+		if uf, ok := userFace[uid]; ok {
+			*uf.(*[]byte) = f // 地址指向的值变更
+		} else {
+			userFace[uid] = &f // 取地址
+		}
+	} else {
+		return config.RedisCli.Set(config.Rctx, user_prefix+uid, f, time.Hour*100000).Err()
+	}
+	return
+}
+
+// group 关联user face的地址
+func setGroupFace(gid string, uids ...string) (err error) {
+	if !config.MultiPoint {
+		for _, uid := range uids {
+			face := userFace[uid]
+			if face != nil {
+				if groupFace[gid] == nil {
+					groupFace[gid] = make(map[string]interface{})
 				}
-			} else {
-				return err
+				groupFace[gid][uid] = face
 			}
 		}
 	} else {
-		if vals, ok := faceMap[hkey]; ok {
-			for k, v := range features {
-				vals[k] = v
-			}
-		} else {
-			faceMap[hkey] = features
+		slice := make([]interface{}, len(uids))
+		for i, u := range uids {
+			slice[i] = interface{}(user_prefix + u)
 		}
-	}
-	return nil
-}
-
-func LoadAllFeatures() {
-	// 加载所有的features, 用redis得hashset存储
-	groups := []model.FaceGroup{}
-	config.DB.Find(&groups)
-
-	for _, g := range groups {
-		hkey := fmt.Sprintf("face_group#%s", g.Gid)
-		features := g.FaceFeatures()
-		err := setGroupFaces(hkey, features)
+		err = config.RedisCli.SAdd(config.Rctx, group_prefix+gid, slice...).Err()
 		if err != nil {
-			config.Logger.Error("加载人脸特征出错", zap.String("group", g.Gid), zap.Error(err))
-		} else {
-			config.Logger.Info("加载人脸特征成功", zap.String("group", g.Gid), zap.Int("count", len(features)))
+			return
 		}
 	}
+	return
 }
 
-func GetGroupFeatures(group *model.FaceGroup) map[string]interface{} {
-	hkey := fmt.Sprintf("face_group#%s", group.Gid)
-	if config.RedisCli != nil {
-		vals, err := config.RedisCli.HGetAll(config.Rctx, hkey).Result()
-		if err != nil { // 缓存异常或为空直接用数据库
-			return group.FaceFeatures()
-		} else {
-			var f = map[string]interface{}{}
-			for k, v := range vals {
-				f[k] = interface{}(utils.Str2bytes(v))
-			}
-			return f
+func delGroupFace(gid string, uids ...string) error {
+	if config.MultiPoint {
+		slice := make([]interface{}, len(uids))
+		for i, u := range uids {
+			slice[i] = interface{}(user_prefix + u)
 		}
+		err := config.RedisCli.SRem(config.Rctx, group_prefix+gid, slice...).Err()
+		return err
 	} else {
-		if vals, ok := faceMap[hkey]; ok {
-			return vals
-		} else {
-			return group.FaceFeatures()
-		}
-	}
-
-}
-
-func DelGroupFeatures(gid string, users []model.FaceUser) (err error) {
-	hkey := fmt.Sprintf("face_group#%s", gid)
-	uids := make([]string, len(users))
-	for idx, u := range users {
-		uids[idx] = u.Uid
-	}
-	if config.RedisCli != nil {
-		return config.RedisCli.HDel(config.Rctx, hkey, uids...).Err()
-	} else {
-		if vals, ok := faceMap[hkey]; ok {
-			for _, u := range uids {
-				delete(vals, u)
-			}
+		faces := groupFace[gid]
+		for _, u := range uids {
+			delete(faces, u)
 		}
 		return nil
 	}
 }
 
-func AddGroupFeatures(gid string, users []model.FaceUser) (err error) {
-	hkey := fmt.Sprintf("face_group#%s", gid)
-	features := map[string]interface{}{}
-	for _, u := range users {
-		if u.FaceFeature == nil || len(u.FaceFeature) != 1032 {
-			continue
+func getGroupFace(gid string) (res map[string]interface{}) {
+	if !config.MultiPoint {
+		return groupFace[gid]
+	} else {
+		uids, err := config.RedisCli.SMembers(config.Rctx, group_prefix+gid).Result()
+		if err != nil {
+			return
 		}
-		features[u.Uid] = u.FaceFeature
-	}
-	err = setGroupFaces(hkey, features)
-	if err != nil {
-		config.Logger.Error("group增加人脸特征失败", zap.String("group", gid))
+		faces, err := config.RedisCli.MGet(config.Rctx, uids...).Result()
+		if err != nil {
+			return
+		}
+
+		res = make(map[string]interface{}, len(uids))
+		for idx, uid := range uids {
+			key := strings.TrimLeft(uid, user_prefix)
+			if faces[idx] != nil {
+				res[key] = faces[idx]
+			}
+		}
 		return
 	}
-	return
 }
 
-func UpdateUserFeature(user *model.FaceUser) (err error) {
-	groups := []model.FaceGroup{}
-	config.DB.Model(user).Association("Groups").Find(&groups)
-	for _, g := range groups {
-		hkey := fmt.Sprintf("face_group#%s", g.Gid)
-		err = setGroupFaces(hkey, map[string]interface{}{user.Uid: user.FaceFeature})
-		if err != nil {
-			config.Logger.Error("更新人脸特征失败", zap.String("group", g.Gid), zap.String("user", user.Uid))
+func LoadAllFeatures() {
+	// 加载所有的features到内存或分布式缓存里
+	users := []model.FaceUser{}
+	config.DB.Preload("Groups").Find(&users)
+	for _, u := range users {
+		if u.FaceFeature == nil || len(u.FaceFeature) != 1032 {
+			continue // 无效的face忽略掉
+		}
+		if err := setUserFace(u.Uid, u.FaceFeature); err != nil {
+			config.Logger.Error("加载用户人脸特征发生错误", zap.String("user", u.Uid), zap.Error(err))
+			return
+		}
+		for _, g := range u.Groups {
+			if err := setGroupFace(g.Gid, u.Uid); err != nil {
+				config.Logger.Error("加载分组人脸特征发生错误", zap.String("group", g.Gid), zap.Error(err))
+				return
+			}
 		}
 	}
-	return
+	config.Logger.Error("加载用户人脸特征到内存成功")
+}
+
+func GetGroupFeatures(group *model.FaceGroup) map[string]interface{} {
+	res := getGroupFace(group.Gid)
+	if len(res) == 0 {
+		return group.FaceFeatures()
+	}
+	return res
+}
+
+func DelGroupFeatures(gid string, uids ...string) (err error) {
+	return delGroupFace(gid, uids...)
+}
+
+func AddGroupFeatures(gid string, uids ...string) (err error) {
+	return setGroupFace(gid, uids...)
+}
+
+func UpdateUserFeature(uid string, feature []byte) (err error) {
+	return setUserFace(uid, feature)
 }

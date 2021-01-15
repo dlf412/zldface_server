@@ -64,6 +64,7 @@ func (this *RedisLock) Unlock() {
 	delScript.Eval(config.Rctx, config.RedisCli, []string{this.lockKey}, this.value)
 }
 
+// 持续拥有锁，可用在master-slave模式
 func (this *RedisLock) Keep() bool {
 	r, err := keepScript.Eval(config.Rctx, config.RedisCli, []string{this.lockKey, "px"}, this.value, int64(this.timeout/time.Millisecond)).Result()
 	return err == nil && r.(string) == "OK"
