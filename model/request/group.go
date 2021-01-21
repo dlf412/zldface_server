@@ -1,8 +1,8 @@
 package request
 
 type FaceGroup struct {
-	Name string `json:"name" gorm:"column:name" binding:"required"` // 分组名
 	Gid  string `json:"gid" gorm:"column:gid" binding:"required"`   // 分组id
+	Name string `json:"name" gorm:"column:name" binding:"required"` // 分组名
 }
 
 type FaceGroupUser struct {

@@ -97,8 +97,9 @@ func LoadAllFeatures() {
 	// 加载所有的features到内存或分布式缓存里
 	users := []model.FaceUser{}
 	config.DB.Preload("Groups").Find(&users)
-	for _, u := range users {
-		if u.FaceFeature == nil || len(u.FaceFeature) != 1032 {
+	for idx := range users { // range是copy内存的，user struct占用内存较多，所以只遍历index
+		u := users[idx]
+		if len(u.FaceFeature) != 1032 {
 			continue // 无效的face忽略掉
 		}
 		if err := setUserFace(u.Uid, u.FaceFeature); err != nil {
@@ -112,7 +113,7 @@ func LoadAllFeatures() {
 			}
 		}
 	}
-	config.Logger.Error("加载用户人脸特征到内存成功")
+	config.Logger.Info("加载用户人脸特征到内存成功")
 }
 
 func GetGroupFeatures(group *model.FaceGroup) map[string]interface{} {

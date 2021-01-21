@@ -3,7 +3,6 @@ package recognition
 import (
 	"errors"
 	"os"
-	"reflect"
 	"sort"
 	"sync"
 	"time"
@@ -167,9 +166,11 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 	switch f1.(type) {
 	case []byte:
 		feature1 = f1.([]byte)
+	case *[]byte:
+		feature1 = *(f1.(*[]byte))
 	case FaceFeature:
 		feature1 = f1.(FaceFeature).Feature
-	default:
+	default: // 按文件路径来处理
 		face, err := e.DetectFace(f1)
 		if err != nil {
 			return nil, err
@@ -179,6 +180,11 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 			return nil, err
 		}
 	}
+
+	if len(feature1) != 1032 {
+		return nil, errors.New("invaild feature size")
+	}
+
 	t_cnt := len(byteFeatures)
 	if t_cnt == 0 {
 		return nil, errors.New("byteFeatures is Empty")
@@ -202,8 +208,12 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 						goto END
 					}
 					for k, v := range t {
-						score, _ := e.FaceFeatureCompareEx(feature1, v)
-						results <- Closest{Key: k, Score: score}
+						if len(v) != 1032 {
+							results <- Closest{Key: k, Score: 0.0}
+						} else {
+							score, _ := e.FaceFeatureCompareEx(feature1, v)
+							results <- Closest{Key: k, Score: score}
+						}
 					}
 				}
 			}
@@ -219,10 +229,14 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 			tasks <- map[interface{}][]byte{k: v.([]byte)}
 		case string:
 			tasks <- map[interface{}][]byte{k: utils.Str2bytes(v.(string))}
+		case *[]byte:
+			tasks <- map[interface{}][]byte{k: *(v.(*[]byte))}
 		case *interface{}:
 			tasks <- map[interface{}][]byte{k: (*v.(*interface{})).([]byte)}
 		default:
-			tasks <- map[interface{}][]byte{k: reflect.ValueOf(v).Elem().Interface().([]byte)}
+			// 不支持的格式，按空处理
+			tasks <- map[interface{}][]byte{k: nil}
+			//tasks <- map[interface{}][]byte{k: reflect.ValueOf(v).Elem().Interface().([]byte)}// 类型不对会panic
 		}
 	}
 	// 通道接收结果

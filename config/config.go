@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
@@ -66,6 +67,10 @@ func init() {
 	VerDir = Config.Storage.VerDir
 	RegDir = Config.Storage.RegDir
 	Debug = Config.System.Debug
+
+	if !Debug {
+		gin.SetMode(gin.ReleaseMode)
+	}
 }
 
 func getEnv(env string) string {

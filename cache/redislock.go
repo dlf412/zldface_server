@@ -51,7 +51,7 @@ func (this *RedisLock) Lock() {
 		}
 		if !ok {
 			if this.loop > 0 {
-				time.Sleep(time.Millisecond)
+				time.Sleep(this.loop)
 			}
 			runtime.Gosched()
 		} else {

@@ -8,7 +8,6 @@ import (
 	"time"
 	"zldface_server/cache"
 	"zldface_server/config"
-	//"zldface_server/model/request"
 	"zldface_server/router"
 )
 
@@ -48,7 +47,6 @@ func runserver() {
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
-
 func main() {
 	config.Logger.Info(fmt.Sprintf("%v", config.Config))
 	cache.BeRun()
@@ -60,15 +58,3 @@ func main() {
 		defer config.RedisCli.Close()
 	}
 }
-
-//import "github.com/gin-gonic/gin"
-//
-//func main() {
-//	r := gin.Default()
-//	r.GET("/ping", func(c *gin.Context) {
-//		c.JSON(200, gin.H{
-//			"message": "pong",
-//		})
-//	})
-//	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
-//}

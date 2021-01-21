@@ -162,8 +162,10 @@ func CreateUser(c *gin.Context) {
 	}
 	wg.Wait()
 
-	for _, g := range U.Gid {
-		cache.AddGroupFeatures(g, user.Uid)
+	for _, g := range user.Groups {
+		lock := cache.Mutex(g, config.MultiPoint)
+		cache.AddGroupFeatures(g.Gid, user.Uid)
+		defer lock.Unlock()
 	}
 
 	c.JSON(http.StatusCreated, model.FaceUser{
