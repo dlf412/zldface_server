@@ -3,13 +3,29 @@ package recognition
 import (
 	"errors"
 	"os"
+	"runtime"
 	"sort"
 	"sync"
 	"time"
 	"zldface_server/utils"
 )
 
-var appid, key = os.Getenv("ARCSOFT_FACE_APPID"), os.Getenv("ARCSOFT_FACE_KEY")
+func appidAndKey() (appid string, key string) {
+	appid, key = os.Getenv("ARCSOFT_FACE_APPID"), os.Getenv("ARCSOFT_FACE_KEY")
+	if appid == "" {
+		appid = "Fqa9LM1ww4qcT58MWYjfkDq8DPeycb76t4jhK7Eu9QNY"
+	}
+	if key == "" {
+		if runtime.GOOS == "linux" {
+			key = "3yXBYs6VGfvC1voKfxB4c2jmbn4eoPQEjLaBYbnZhFEB"
+		} else if runtime.GOOS == "windows" {
+			key = "3yXBYs6VGfvC1voKfxB4c2jmjtdpGFYYgUp9Qk8wYCNb"
+		}
+	}
+	return
+}
+
+var appid, key = appidAndKey()
 
 func BGR24Data(image interface{}) (width, height int, data []uint8, err error) {
 
@@ -162,6 +178,11 @@ func (e *Engine) CompareFeature(f1, f2 interface{}) (score float32, err error) {
 }
 
 func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, top int, threshold float32) ([]Closest, error) {
+
+	t_cnt := len(byteFeatures)
+	if t_cnt == 0 { // 人脸库为空直接返回不匹配
+		return nil, nil
+	}
 	var feature1 []byte
 	switch f1.(type) {
 	case []byte:
@@ -183,11 +204,6 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 
 	if len(feature1) != 1032 {
 		return nil, errors.New("invaild feature size")
-	}
-
-	t_cnt := len(byteFeatures)
-	if t_cnt == 0 {
-		return nil, errors.New("byteFeatures is Empty")
 	}
 	// 创建任务通道
 	tasks := make(chan map[interface{}][]byte, t_cnt)

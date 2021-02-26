@@ -113,7 +113,7 @@ func LoadAllFeatures() {
 			}
 		}
 	}
-	config.Logger.Info("加载用户人脸特征到内存成功")
+	config.Logger.Info("加载用户人脸特征到内存成功", zap.Int("用户总数", len(users)))
 }
 
 func GetGroupFeatures(group *model.FaceGroup) map[string]interface{} {
