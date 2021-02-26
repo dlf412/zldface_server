@@ -48,9 +48,9 @@ func (g *FaceGroup) FaceFeatures() map[string]interface{} {
 }
 
 func (u FaceUser) LockID() string {
-	return u.Uid
+	return "UL#" + u.Uid
 }
 
 func (g FaceGroup) LockID() string {
-	return g.Gid
+	return "GL#" + g.Gid
 }

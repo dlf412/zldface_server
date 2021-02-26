@@ -1,8 +1,6 @@
 package cache
 
 import (
-	"fmt"
-	"reflect"
 	"sync"
 	"time"
 )
@@ -17,7 +15,7 @@ var Locks = sync.Map{}
 var lock_expire = 10 * time.Second
 
 func Mutex(l Lockabler, multi bool) Locker {
-	key := fmt.Sprintf("%s%s%s", reflect.TypeOf(l).String(), "#", l.LockID())
+	key := l.LockID()
 	var m interface{}
 	if !multi {
 		m = &sync.Mutex{}

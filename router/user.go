@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 	v1 "zldface_server/api/v1"
+	"zldface_server/middleware"
 )
 
 func InitUserRouter(Router *gin.RouterGroup) {
@@ -18,6 +19,6 @@ func InitUserRouter(Router *gin.RouterGroup) {
 
 	UserMatchRouter := Router.Group("user/match")
 	{
-		UserMatchRouter.POST("v1", v1.MatchUser)
+		UserMatchRouter.POST("v1", middleware.MaxAllowed(10), v1.MatchUser)
 	}
 }
