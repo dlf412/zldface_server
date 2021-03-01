@@ -17,7 +17,9 @@ func Routers() *gin.Engine {
 	// 跨域
 	Router.Use(middleware.Cors())
 	config.Logger.Info("use middleware cors")
-	Router.GET("face/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	if config.Debug {
+		Router.GET("face/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 	//global.GVA_LOG.Info("register swagger handler")
 	// 方便统一添加路由组前缀 多服务器上线使用
 	//PublicGroup := Router.Group("") // 不需要auth
