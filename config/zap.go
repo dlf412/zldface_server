@@ -32,6 +32,15 @@ func (l ZldLog) Printf(message string, data ...interface{}) {
 	l.Info(fmt.Sprintf(message, data...))
 }
 
+func (l ZldLog) Write(p []byte) (n int, err error) {
+	n = len(p) - 1
+	if n <= 0 {
+		return 0, nil
+	}
+	l.Info(string(p[0:n]))
+	return n, nil
+}
+
 var level zapcore.Level
 
 func (z zap_cfg) Init() (logger *zap.Logger) {

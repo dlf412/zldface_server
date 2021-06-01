@@ -11,9 +11,11 @@ import (
 )
 
 type system struct {
-	Debug      bool `yaml:"debug"`
-	Addr       int  `yaml:"addr"`
-	MultiPoint bool `yaml:"multipoint"`
+	Debug            bool  `yaml:"debug"`
+	Addr             int   `yaml:"addr"`
+	MultiPoint       bool  `yaml:"multipoint"`
+	MultipartMemory  int64 `yaml:"multipartmemory"`
+	MatchConcurrency int   `yaml:"matchconcurrency"`
 }
 
 type storage struct {
@@ -46,7 +48,6 @@ func init() {
 
 	for _, k := range viper.AllKeys() {
 		value := viper.GetString(k)
-		//log.Println(k, value)
 		if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
 			viper.Set(k, getEnv(strings.TrimSuffix(strings.TrimPrefix(value, "${"), "}")))
 		}

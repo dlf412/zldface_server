@@ -11,6 +11,7 @@ package recognition
 import "C"
 
 import (
+	"fmt"
 	"unsafe"
 )
 
@@ -470,7 +471,7 @@ func (feature *FaceFeature) Release() {
 
 // 实现Error接口
 func (err EngineError) Error() string {
-	return err.Text
+	return fmt.Sprintf("%s[%d]", err.Text, err.Code)
 }
 
 func newError(code int, text string) EngineError {

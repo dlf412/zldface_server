@@ -2,45 +2,48 @@
 
 # zap logger configuration
 zap:
-  level: 'info'
-  format: 'console'
-  prefix: '[ZLDFace-Server]'
-  director: ${LOGGING_DIR:log}
-  link-name: 'latest_log'
-  show-line: true
-  encode-level: 'LowercaseLevelEncoder'
-  stacktrace-key: 'stacktrace'
-  log-in-console: true
+    level: 'info'
+    format: 'console'
+    prefix: '[ZLDFace-Server]'
+    director: ${LOGGING_DIR:log}
+    link-name: 'latest_log'
+    show-line: true
+    encode-level: 'LowercaseLevelEncoder'
+    stacktrace-key: 'stacktrace'
+    log-in-console: true
 
 # redis configuration
 redis:
-  db: ${REDIS_DB:2}
-  url: ${REDIS_CACHE:redis://127.0.0.1:6379/}
+    db: ${REDIS_CACHE_DBNO:2}
+    url: ${REDIS_CACHE:redis://127.0.0.1:6379/}
 
 # system configuration
 system:
-  debug: ${DEBUG:True}
-  addr: 8888
-  multipoint: true # 是否多节点部署
+    debug: ${DEBUG:True}
+    addr: 8888
+    multipoint: true # 是否多节点部署
+    multipartmemory: ${MULTIPART_MEMORY:10485760}
+    matchconcurrency: ${MATCH_CONCURRENCY:20}
+
 
 # mysql connect configuration
 mysql:
-  host: ${MYSQL_HOST:127.0.0.1}
-  port: ${MYSQL_PORT:3306}
-  user: ${MYSQL_USER:zldtest}
-  password: ${MYSQL_PASSWORD:Khfdf*7123gdUIUYf}
-  db: ${MYSQL_DB:zldtest}
-  config: 'charset=utf8mb4&parseTime=True&loc=Local'
-  max-idle-conns: 10
-  max-open-conns: 100
-  log-mode: false
-  log-zap: "warn"
-  slow-log: 200  # 慢日志200ms, DEBUG模式为1ms
+    host: ${MYSQL_HOST:127.0.0.1}
+    port: ${MYSQL_PORT:3306}
+    user: ${MYSQL_USER:zldtest}
+    password: ${MYSQL_PASSWORD:Khfdf*7123gdUIUYf}
+    db: ${MYSQL_DB:zldtest}
+    config: 'charset=utf8mb4&parseTime=True&loc=Local'
+    max-idle-conns: 10
+    max-open-conns: 100
+    log-mode: false
+    log-zap: "warn"
+    slow-log: 200  # 慢日志200ms, DEBUG模式为1ms
 
 # storage configuration
 storage:
-  regdir: ${REGISTER_IMG_DIR:face/reg/}  # 注册人脸照片路径
-  verdir: ${HPFACE_IMG_DIR:face/ver/}  # 识别人脸照片路径
+    regdir: ${REGISTER_IMG_DIR:face/reg/}  # 注册人脸照片路径
+    verdir: ${HPFACE_IMG_DIR:face/ver/}  # 识别人脸照片路径
 
 # 认证方式, 可自定义实现, 然后修改配置. DEBUG=True不开启认证
 auth: 'ZldAuth'

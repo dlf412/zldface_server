@@ -26,6 +26,16 @@ definitions:
       uid:
         type: string
     type: object
+  request.FaceFeatures:
+    properties:
+      feature1:
+        type: string
+      feature2:
+        type: string
+    required:
+      - feature1
+      - feature2
+    type: object
   request.FaceGroup:
     properties:
       gid:
@@ -62,6 +72,26 @@ definitions:
       score:
         type: number
     type: object
+  v1.CompareFileRes:
+    properties:
+      faceImagePath1:
+        description: 人脸路径1
+        type: string
+      faceImagePath2:
+        description: 人脸路径2
+        type: string
+      score:
+        type: number
+    type: object
+  v1.ExtractFeatureRes:
+    properties:
+      faceFeature:
+        items:
+          type: integer
+        type: array
+      faceImagePath:
+        type: string
+    type: object
 host: localhost:8888
 info:
   contact:
@@ -73,6 +103,92 @@ info:
   title: 智链达人脸录入和识别服务API
   version: "1.0"
 paths:
+  /faceCompare/v1:
+    post:
+      consumes:
+        - multipart/form-data
+      description: compare two faceImage files and return the score and save path(0<score<=1)
+      parameters:
+        - description: 人脸照片1路径或者特征，有此参数忽略人脸照片1
+          in: formData
+          name: face1
+          type: string
+        - description: 人脸照片2路径或者特征，有此参数忽略人脸照片2
+          in: formData
+          name: face2
+          type: string
+        - description: 人脸照片1
+          in: formData
+          name: faceFile1
+          type: file
+        - description: 人脸照片2
+          in: formData
+          name: faceFile2
+          type: file
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.CompareFileRes'
+      summary: compare two faceImage files
+  /faceFeature/v1:
+    get:
+      description: faceImagePath return from /faceImage/v1
+      parameters:
+        - description: faceImagePath
+          in: query
+          name: faceImagePath
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.ExtractFeatureRes'
+      summary: get faceFeature by faceImagePath
+  /faceImage/v1:
+    post:
+      consumes:
+        - multipart/form-data
+      description: post a face image then return the save path and faceFeature.
+      parameters:
+        - description: faceFile
+          in: formData
+          name: faceFile
+          required: true
+          type: file
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/v1.ExtractFeatureRes'
+      summary: save a FaceImage and extract faceFeature
+  /featureCompare/v1:
+    post:
+      consumes:
+        - application/json
+      description: compare two faceFeature and return the score (0<score<=1)
+      parameters:
+        - description: 人脸特征1, 人脸特征2
+          in: body
+          name: data
+          required: true
+          schema:
+            $ref: '#/definitions/request.FaceFeatures'
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: '{"score":0.90}'
+          schema:
+            type: string
+      summary: compare two faceFeature
   /group/users/v1:
     delete:
       consumes:
@@ -143,10 +259,17 @@ paths:
         name: faceFile
         required: true
         type: file
-      - description: group id
+      - description: group id, onlyUpFile为false必传
         in: formData
         name: gid
-        required: true
+        type: string
+      - description: onlyUpFile, default is false
+        in: formData
+        name: onlyUpFile
+        type: boolean
+      - description: filePath, 指定文件路径，设置了该值服务器将以此文件路径保存文件, 格式为 yyyy/mm/dd/$md5.jpg
+        in: formData
+        name: filePath
         type: string
       produces:
       - application/json
@@ -191,6 +314,10 @@ paths:
       - description: 人脸照片路径（服务器已存在的相对路径）
         in: formData
         name: faceImagePath
+        type: string
+      - description: 身份证照片路径（服务器已存在的相对路径）
+        in: formData
+        name: idImagePath
         type: string
       produces:
       - application/json

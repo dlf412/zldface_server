@@ -1,18 +1,22 @@
 package cache
 
 import (
+	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 	"strings"
 	"time"
 	"zldface_server/config"
 	"zldface_server/model"
+	"zldface_server/recognition"
 )
 
 const group_prefix = "##face_group##"
 const user_prefix = "##face_user##"
+const path_prefix = "##face_path##"
 
 var groupFace = map[string]map[string]interface{}{} // group
 var userFace = map[string]interface{}{}             // user
+var pathFace = map[string][]byte{}                  // 本地路径缓存的特征
 
 func setUserFace(uid string, f []byte) (err error) {
 	if !config.MultiPoint {
@@ -22,7 +26,7 @@ func setUserFace(uid string, f []byte) (err error) {
 			userFace[uid] = &f // 取地址
 		}
 	} else {
-		return config.RedisCli.Set(config.Rctx, user_prefix+uid, f, time.Hour*100000).Err()
+		return config.RedisCli.Set(config.Rctx, user_prefix+uid, f, time.Hour*36000).Err()
 	}
 	return
 }
@@ -40,11 +44,21 @@ func setGroupFace(gid string, uids ...string) (err error) {
 			}
 		}
 	} else {
-		slice := make([]interface{}, len(uids))
+
+		//slice := make([]interface{}, len(uids))
+		//for i, u := range uids {
+		//	interface{}(user_prefix + u)
+		//}
+		//err = config.RedisCli.SAdd(config.Rctx, group_prefix+gid, slice...).Err()
+		//if err != nil {
+		//	return
+		//}
+
+		slice := make([]*redis.Z, len(uids))
 		for i, u := range uids {
-			slice[i] = interface{}(user_prefix + u)
+			slice[i] = &redis.Z{Score: float64(time.Now().Unix()), Member: user_prefix + u}
 		}
-		err = config.RedisCli.SAdd(config.Rctx, group_prefix+gid, slice...).Err()
+		err = config.RedisCli.ZAdd(config.Rctx, group_prefix+gid, slice...).Err()
 		if err != nil {
 			return
 		}
@@ -58,7 +72,8 @@ func delGroupFace(gid string, uids ...string) error {
 		for i, u := range uids {
 			slice[i] = interface{}(user_prefix + u)
 		}
-		err := config.RedisCli.SRem(config.Rctx, group_prefix+gid, slice...).Err()
+		//err := config.RedisCli.SRem(config.Rctx, group_prefix+gid, slice...).Err()
+		err := config.RedisCli.ZRem(config.Rctx, group_prefix+gid, slice...).Err()
 		return err
 	} else {
 		faces := groupFace[gid]
@@ -73,7 +88,9 @@ func getGroupFace(gid string) (res map[string]interface{}) {
 	if !config.MultiPoint {
 		return groupFace[gid]
 	} else {
-		uids, err := config.RedisCli.SMembers(config.Rctx, group_prefix+gid).Result()
+
+		uids, err := config.RedisCli.ZRevRange(config.Rctx, group_prefix+gid, 0, -1).Result()
+		//uids, err := config.RedisCli.SMembers(config.Rctx, group_prefix+gid).Result()
 		if err != nil {
 			return
 		}
@@ -90,6 +107,24 @@ func getGroupFace(gid string) (res map[string]interface{}) {
 			}
 		}
 		return
+	}
+}
+
+func ClearAllFeatures() {
+	// 清除所有缓存
+	if config.MultiPoint {
+		for _, prefix := range []string{group_prefix, user_prefix, path_prefix} {
+			keys, cursor := []string{}, uint64(0)
+			for {
+				keys, cursor, _ = config.RedisCli.Scan(config.Rctx, cursor, prefix+"*", 100).Result()
+				if len(keys) > 0 {
+					config.RedisCli.Del(config.Rctx, keys...)
+				}
+				if cursor == 0 {
+					break
+				}
+			}
+		}
 	}
 }
 
@@ -119,7 +154,14 @@ func LoadAllFeatures() {
 func GetGroupFeatures(group *model.FaceGroup) map[string]interface{} {
 	res := getGroupFace(group.Gid)
 	if len(res) == 0 {
-		return group.FaceFeatures()
+		ufs := group.FaceFeatures()
+		var uids []string
+		for k, v := range ufs {
+			setUserFace(k, v.([]byte))
+			uids = append(uids, k)
+		}
+		setGroupFace(group.Gid, uids...)
+		return ufs
 	}
 	return res
 }
@@ -134,4 +176,37 @@ func AddGroupFeatures(gid string, uids ...string) (err error) {
 
 func UpdateUserFeature(uid string, feature []byte) (err error) {
 	return setUserFace(uid, feature)
+}
+
+func UpdatePathFeature(p string, feature []byte) (err error) {
+	if config.MultiPoint {
+		return config.RedisCli.Set(config.Rctx, path_prefix+p, feature, time.Hour*1).Err()
+	} else {
+		pathFace[p] = feature
+		return nil
+	}
+}
+
+func DelPathFeature(p string) (err error) {
+	if config.MultiPoint {
+		return config.RedisCli.Del(config.Rctx, path_prefix+p).Err()
+	} else {
+		delete(pathFace, p)
+		return nil
+	}
+}
+
+func GetPathFeature(p string) ([]byte, error) {
+	var f []byte
+	if config.MultiPoint {
+		f, _ = config.RedisCli.Get(config.Rctx, path_prefix+p).Bytes()
+	} else {
+		f = pathFace[p]
+	}
+	if f != nil {
+		DelPathFeature(p)
+		return f, nil
+	} else {
+		return recognition.FeatureByteArr(config.RegDir + "/" + p)
+	}
 }

@@ -20,6 +20,7 @@ func MD5V(str []byte) string {
 }
 
 func MD5sum(r io.ReadSeeker) string {
+	r.Seek(0, io.SeekStart)
 	br := bufio.NewReader(r)
 	h := md5.New()
 	_, err := io.Copy(h, br)

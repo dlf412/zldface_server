@@ -16,14 +16,14 @@ type G_MODEL struct {
 
 type FaceGroup struct {
 	G_MODEL
-	Gid   string     `json:"gid" gorm:"comment:group id; uniqueIndex; not null; size:50"`
-	Name  string     `json:"name" gorm:"comment:group名称; not null"`
+	Gid   string     `json:"gid" gorm:"comment:group id; uniqueIndex; not null; size:20"`
+	Name  string     `json:"name" gorm:"comment:group名称; not null; size:200"`
 	Users []FaceUser `json:"-" gorm:"many2many:face_group_users"`
 }
 
 type FaceUser struct {
 	G_MODEL
-	Uid           string      `json:"uid" gorm:"comment:user id; uniqueIndex; not null; size:50"`
+	Uid           string      `json:"uid" gorm:"comment:user id; uniqueIndex; not null; size:20"`
 	FaceFeature   []byte      `json:"faceFeature,omitempty" gorm:"comment:user人脸特征; size:1032"`
 	Name          string      `json:"name" gorm:"comment:user名称; not null; size:20"`
 	FaceImagePath string      `json:"faceImagePath" gorm:"comment:人脸照路径; size:255"`

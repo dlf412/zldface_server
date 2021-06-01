@@ -13,7 +13,13 @@ import (
 // Sid认证  Authorization:SID $sid
 func ZldAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 简单的认为 host为 localhost 则不需要认证，内部调用
+		if c.Request.Host == fmt.Sprintf("localhost:%d", config.Config.System.Addr) {
+			c.Next()
+			return
+		}
 		if config.RedisCli == nil { // 单点模式ZldAuth无效
+			c.Next()
 			return
 		}
 		sid := c.Request.Header.Get("Authorization")
@@ -30,7 +36,7 @@ func ZldAuth() gin.HandlerFunc {
 		}
 		token := ":1:" + s[1]
 		// 从redis cache里查找对应的token, 看是否存在
-		user, err := config.RedisCli.Get(config.Rctx, token).Result()
+		_, err := config.RedisCli.Get(config.Rctx, token).Result()
 		if err == redis.Nil {
 			c.JSON(http.StatusForbidden, gin.H{"detail": "无效SID"})
 			c.Abort()
@@ -41,7 +47,7 @@ func ZldAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		} else {
-			config.Logger.Info(fmt.Sprintf("auth认证成功"), zap.String("sid", token), zap.String("user_info", user))
+			config.Logger.Info(fmt.Sprintf("auth认证成功"), zap.String("sid", token))
 			c.Next()
 		}
 	}

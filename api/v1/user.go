@@ -2,13 +2,14 @@ package v1
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
+	"os"
 	"path"
 	"sync"
+	"time"
 	"zldface_server/cache"
 	"zldface_server/config"
 	"zldface_server/model"
@@ -49,6 +50,7 @@ func GetUser(c *gin.Context) {
 // @param gid formData string false "group id"
 // @param faceFeature formData string false "人脸特征文件, binary格式" format(binary)
 // @param faceImagePath formData string false "人脸照片路径（服务器已存在的相对路径）"
+// @param idImagePath formData string false "身份证照片路径（服务器已存在的相对路径）"
 // @Success 201 {object} model.FaceUser
 // @Router /users/v1 [post]
 func CreateUser(c *gin.Context) {
@@ -59,11 +61,18 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	config.Logger.Info("收到创建用户请求", zap.Any("create user", U))
+
+	var origin model.FaceUser
+	config.DB.Table("face_users").Select(
+		"face_image_path, id_image_path").Where("`Uid`=?", U.Uid).Scan(&origin)
+
 	user := model.FaceUser{
 		Uid:           U.Uid,
 		Name:          U.Name,
 		FaceFeature:   nil,
 		FaceImagePath: U.FaceImagePath,
+		IdImagePath:   U.IdImagePath,
 		Groups:        nil,
 	}
 
@@ -78,8 +87,7 @@ func CreateUser(c *gin.Context) {
 	if U.IdFile != nil {
 		idFile, _ := U.IdFile.Open()
 		defer idFile.Close()
-		md5 := utils.MD5sum(idFile)
-		user.IdImagePath = fmt.Sprintf("%s/%s/%s/%s.jpg", md5[0:2], md5[2:4], md5[4:6], md5)
+		user.IdImagePath = utils.MD5RelativePath(idFile)
 		wg.Add(1)
 		go func() {
 			if err := utils.SaveFile(idFile, path.Join(config.RegDir, user.IdImagePath)); err != nil {
@@ -99,9 +107,7 @@ func CreateUser(c *gin.Context) {
 
 		defer faceFile.Close()
 
-		// 计算文件的md5
-		md5 := utils.MD5sum(faceFile)
-		user.FaceImagePath = fmt.Sprintf("%s/%s/%s/%s.jpg", md5[0:2], md5[2:4], md5[4:6], md5)
+		user.FaceImagePath = utils.MD5RelativePath(faceFile)
 		user.FaceFeature, err = recognition.FeatureByteArr(faceFile)
 		if err != nil {
 			config.Logger.Warn("图片提取人脸特征失败", zap.Error(err))
@@ -130,9 +136,9 @@ func CreateUser(c *gin.Context) {
 			io.Copy(buf, ff)
 			user.FaceFeature = buf.Bytes()
 		} else {
-			if len(user.FaceImagePath) > 0 {
+			if len(user.FaceImagePath) > 0 && user.FaceImagePath != origin.FaceImagePath {
 				var err error
-				user.FaceFeature, err = recognition.FeatureByteArr(config.RegDir + "/" + user.FaceImagePath)
+				user.FaceFeature, err = cache.GetPathFeature(user.FaceImagePath)
 				if err != nil {
 					config.Logger.Warn("图片提取人脸特征失败", zap.Error(err))
 					c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
@@ -168,11 +174,20 @@ func CreateUser(c *gin.Context) {
 		defer lock.Unlock()
 	}
 
+	if origin.IdImagePath != "" && origin.IdImagePath != user.IdImagePath {
+		os.Remove(path.Join(config.RegDir, origin.IdImagePath))
+	}
+
+	if origin.FaceImagePath != "" && origin.FaceImagePath != user.FaceImagePath {
+		os.Remove(path.Join(config.RegDir, origin.FaceImagePath))
+	}
+
 	c.JSON(http.StatusCreated, model.FaceUser{
 		Uid:           user.Uid,
 		Name:          user.Name,
 		FaceImagePath: user.FaceImagePath,
 		IdImagePath:   user.IdImagePath,
+		FaceFeature:   user.FaceFeature,
 	})
 }
 
@@ -181,8 +196,10 @@ func CreateUser(c *gin.Context) {
 // @Description post a faceFile to match a user in a group and save the faceFile.
 // @Accept  multipart/form-data
 // @Param faceFile formData file true "faceFile"
-// @param gid formData string true "group id"
-// @Produce  json
+// @param gid formData string false "group id, onlyUpFile为false必传"
+// @param onlyUpFile formData bool false "onlyUpFile, default is false"
+// @param filePath formData string false "filePath, 指定文件路径，设置了该值服务器将以此文件路径保存文件, 格式为 yyyy/mm/dd/$md5.jpg"
+// @Produce json
 // @Success 201 {object} response.FaceMatchResult
 // @Router /user/match/v1 [post]
 func MatchUser(c *gin.Context) {
@@ -190,6 +207,27 @@ func MatchUser(c *gin.Context) {
 	if err := c.Bind(&M); err != nil {
 		config.Logger.Info(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
+	config.Logger.Info("收到用户匹配请求", zap.Any("match user", M))
+
+	if M.OnlyUpFile {
+		ff, _ := M.FaceFile.Open()
+		defer ff.Close()
+		var vfp string
+		if M.FilePath == "" {
+			vfp = utils.MD5RelativePath(ff)
+		} else {
+			vfp = M.FilePath
+		}
+		dst := path.Join(config.VerDir, vfp)
+		// 理论上会丢失要保持的文件
+		cache.UnsafeSaveFile(dst, ff)
+		result := response.FaceMatchResult{
+			FilePath: vfp,
+		}
+		config.Logger.Info("上传人脸照片成功", zap.Any("结果", result))
+		c.JSON(http.StatusOK, result)
 		return
 	}
 
@@ -212,8 +250,12 @@ func MatchUser(c *gin.Context) {
 	defer ff.Close()
 
 	// matches, err := eng.SearchN(ff, group.FaceFeatures(), 1, 0.8)
-
-	matches, err := eng.SearchN(ff, cache.GetGroupFeatures(group), 1, 0.8)
+	features := cache.GetGroupFeatures(group)
+	bT := time.Now()
+	config.Logger.Info("开始search人脸", zap.String("人脸库", group.Gid), zap.Int("库大小", len(features)))
+	matches, err := eng.SearchN(ff, features, 1, 0.8, 0.9)
+	eT := time.Since(bT) // 从开始到当前所消耗的时间
+	config.Logger.Info("search人脸结束", zap.Duration("cost", eT), zap.Any("匹配结果", matches))
 	if err != nil {
 		config.Logger.Error("人脸查找发生错误", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"err": "人脸匹配发生错误"})
@@ -224,14 +266,10 @@ func MatchUser(c *gin.Context) {
 		return
 	}
 	// 异步存储人脸
-	md5 := utils.MD5sum(ff)
-	vfp := fmt.Sprintf("%s/%s/%s/%s.jpg", md5[0:2], md5[2:4], md5[4:6], md5)
-	go func(f string) {
-		dst := path.Join(config.VerDir, f)
-		utils.CreateDir(path.Dir(dst))
-		c.SaveUploadedFile(M.FaceFile, dst)
-	}(vfp)
-
+	vfp := utils.MD5RelativePath(ff)
+	dst := path.Join(config.VerDir, vfp)
+	cache.UnsafeSaveFile(dst, ff)
+	cache.HotFeautre(group.Gid, matches[0].Key.(string))
 	result := response.FaceMatchResult{
 		matches[0], vfp,
 	}

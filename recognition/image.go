@@ -17,32 +17,26 @@ type resamplingFilter struct {
 	Kernel  func(float64) float64
 }
 
-func ResizeForMatrix(i interface{}, width int, height int) (imgMatrix [][][]uint8, err error) {
-	img, err1 := DecodeImage(i)
-
-	if err1 != nil {
-		err = err1
-		return
+func ResizeForMatrix(img image.Image) (int, int, []uint8) {
+	height := GetImageHeight(img)
+	width := GetImageWidth(img)
+	src := convertToNRGBA(img)
+	if width%4 != 0 {
+		width = width - width%4
+		src = Resize(src, width, height)
 	}
-
-	nrgba := convertToNRGBA(img)
-	src := Resize(nrgba, width, height)
-
-	imgMatrix = NewRGBAMatrix(height, width)
-
-	for i := 0; i < height; i++ {
+	data := make([]uint8, height*width*3)
+	for loop, i := 0, 0; i < height; i++ {
 		for j := 0; j < width; j++ {
 			c := src.At(j, i)
-			r, g, b, a := c.RGBA()
-			imgMatrix[i][j][0] = uint8(r)
-			imgMatrix[i][j][1] = uint8(g)
-			imgMatrix[i][j][2] = uint8(b)
-			imgMatrix[i][j][3] = uint8(a)
-
+			r, g, b, _ := c.RGBA()
+			data[loop*3+0] = uint8(b)
+			data[loop*3+1] = uint8(g)
+			data[loop*3+2] = uint8(r)
+			loop += 1
 		}
 	}
-
-	return
+	return width, height, data
 }
 
 // resize size of image
@@ -50,9 +44,6 @@ func Resize(src *image.NRGBA, width int, height int) *image.NRGBA {
 	dstW, dstH := width, height
 
 	if dstW < 0 || dstH < 0 {
-		return src
-	}
-	if dstW == 0 && dstH == 0 {
 		return src
 	}
 

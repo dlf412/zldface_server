@@ -44,7 +44,7 @@ func main() {
 	bT := time.Now()
 	// 开始时间
 	for _, v := range features {
-		eng.SearchN(v, features, 3, 0.78)
+		eng.SearchN(v, features, 3, 0.75, 0.9)
 	}
 	eT := time.Since(bT) // 从开始到当前所消耗的时间
 	fmt.Println("search 50 face cost time: ", eT)

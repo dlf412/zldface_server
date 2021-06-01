@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 if [ ! -f "go.mod" ];then
-  export GOPROXY=https://goproxy.cn
   go mod init zldface_server
 fi
+export GOPROXY=https://goproxy.cn
+go mod tidy
 echo complie...
 # 替换docs的Host
 domain=${MAIN_DOMAIN#*//}

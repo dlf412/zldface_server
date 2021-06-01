@@ -8,6 +8,7 @@ import (
 	"time"
 	"zldface_server/cache"
 	"zldface_server/config"
+	"zldface_server/recognition"
 	"zldface_server/router"
 )
 
@@ -50,8 +51,13 @@ func runserver() {
 func main() {
 	config.Logger.Info(fmt.Sprintf("%v", config.Config))
 	cache.BeRun()
+	arcEngine, err := recognition.NewEngine()
+	if err != nil {
+		config.Logger.Error(fmt.Sprintf("人脸识别引擎加载错误:%s", err.Error()))
+	} else {
+		arcEngine.Destroy()
+	}
 	runserver()
-
 	db, _ := config.DB.DB()
 	defer db.Close()
 	if config.RedisCli != nil {

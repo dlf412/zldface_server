@@ -15,6 +15,138 @@
     "host": "localhost:8888",
     "basePath": "/face/",
     "paths": {
+      "/faceCompare/v1": {
+        "post": {
+          "description": "compare two faceImage files and return the score and save path(0\u003cscore\u003c=1)",
+          "consumes": [
+            "multipart/form-data"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "summary": "compare two faceImage files",
+          "parameters": [
+            {
+              "type": "string",
+              "description": "人脸照片1路径或者特征，有此参数忽略人脸照片1",
+              "name": "face1",
+              "in": "formData"
+            },
+            {
+              "type": "string",
+              "description": "人脸照片2路径或者特征，有此参数忽略人脸照片2",
+              "name": "face2",
+              "in": "formData"
+            },
+            {
+              "type": "file",
+              "description": "人脸照片1",
+              "name": "faceFile1",
+              "in": "formData"
+            },
+            {
+              "type": "file",
+              "description": "人脸照片2",
+              "name": "faceFile2",
+              "in": "formData"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "schema": {
+                "$ref": "#/definitions/v1.CompareFileRes"
+              }
+            }
+          }
+        }
+      },
+      "/faceFeature/v1": {
+        "get": {
+          "description": "faceImagePath return from /faceImage/v1",
+          "produces": [
+            "application/json"
+          ],
+          "summary": "get faceFeature by faceImagePath",
+          "parameters": [
+            {
+              "type": "string",
+              "description": "faceImagePath",
+              "name": "faceImagePath",
+              "in": "query",
+              "required": true
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "schema": {
+                "$ref": "#/definitions/v1.ExtractFeatureRes"
+              }
+            }
+          }
+        }
+      },
+      "/faceImage/v1": {
+        "post": {
+          "description": "post a face image then return the save path and faceFeature.",
+          "consumes": [
+            "multipart/form-data"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "summary": "save a FaceImage and extract faceFeature",
+          "parameters": [
+            {
+              "type": "file",
+              "description": "faceFile",
+              "name": "faceFile",
+              "in": "formData",
+              "required": true
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Created",
+              "schema": {
+                "$ref": "#/definitions/v1.ExtractFeatureRes"
+              }
+            }
+          }
+        }
+      },
+      "/featureCompare/v1": {
+        "post": {
+          "description": "compare two faceFeature and return the score (0\u003cscore\u003c=1)",
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "summary": "compare two faceFeature",
+          "parameters": [
+            {
+              "description": "人脸特征1, 人脸特征2",
+              "name": "data",
+              "in": "body",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/request.FaceFeatures"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "{\"score\":0.90}",
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
         "/group/users/v1": {
             "post": {
                 "description": "add users to a group",
@@ -126,10 +258,21 @@
                     },
                     {
                         "type": "string",
-                        "description": "group id",
+                      "description": "group id, onlyUpFile为false必传",
                         "name": "gid",
-                        "in": "formData",
-                        "required": true
+                      "in": "formData"
+                    },
+                  {
+                    "type": "boolean",
+                    "description": "onlyUpFile, default is false",
+                    "name": "onlyUpFile",
+                    "in": "formData"
+                  },
+                  {
+                    "type": "string",
+                    "description": "filePath, 指定文件路径，设置了该值服务器将以此文件路径保存文件, 格式为 yyyy/mm/dd/$md5.jpg",
+                    "name": "filePath",
+                    "in": "formData"
                     }
                 ],
                 "responses": {
@@ -196,6 +339,12 @@
                         "description": "人脸照片路径（服务器已存在的相对路径）",
                         "name": "faceImagePath",
                         "in": "formData"
+                    },
+                  {
+                    "type": "string",
+                    "description": "身份证照片路径（服务器已存在的相对路径）",
+                    "name": "idImagePath",
+                    "in": "formData"
                     }
                 ],
                 "responses": {
@@ -276,6 +425,21 @@
                 }
             }
         },
+      "request.FaceFeatures": {
+        "type": "object",
+        "required": [
+          "feature1",
+          "feature2"
+        ],
+        "properties": {
+          "feature1": {
+            "type": "string"
+          },
+          "feature2": {
+            "type": "string"
+                }
+            }
+        },
         "request.FaceGroup": {
             "type": "object",
             "required": [
@@ -327,6 +491,36 @@
                     "type": "number"
                 }
             }
+        },
+      "v1.CompareFileRes": {
+        "type": "object",
+        "properties": {
+          "faceImagePath1": {
+            "description": "人脸路径1",
+            "type": "string"
+          },
+          "faceImagePath2": {
+            "description": "人脸路径2",
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      },
+      "v1.ExtractFeatureRes": {
+        "type": "object",
+        "properties": {
+          "faceFeature": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "faceImagePath": {
+            "type": "string"
+          }
+        }
         }
     },
     "securityDefinitions": {

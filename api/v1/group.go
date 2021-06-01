@@ -22,12 +22,12 @@ import (
 func CreateGroup(c *gin.Context) {
 
 	var G request.FaceGroup
-
 	if err := c.ShouldBindJSON(&G); err != nil {
 		config.Logger.Info(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
+	config.Logger.Info("收到创建分组请求", zap.Any("group info:", G))
 	group := &model.FaceGroup{Gid: G.Gid, Name: G.Name}
 	if err := config.DB.Create(&group).Error; err != nil {
 		config.Logger.Info(err.Error())
@@ -55,7 +55,8 @@ func CreateGroupUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	config.Logger.Info("收到请求", zap.Any("group:users", G))
+
+	config.Logger.Info("收到分组增加成员请求", zap.Any("group add users", G))
 
 	// db.Exec("INSERT INTO `face_group_users` (`face_group_id`,`face_user_id`) VALUES (?,?) (?,?)", )
 	group := model.FaceGroup{}
@@ -98,8 +99,7 @@ func DeleteGroupUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	config.Logger.Info("收到请求", zap.Any("group:users", G))
-
+	config.Logger.Info("收到分组删除成员请求", zap.Any("group delete users", G))
 	// db.Exec("INSERT INTO `face_group_users` (`face_group_id`,`face_user_id`) VALUES (?,?) (?,?)", )
 	group := model.FaceGroup{}
 	users := []model.FaceUser{}

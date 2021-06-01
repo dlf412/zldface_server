@@ -1,6 +1,7 @@
 package recognition
 
 import (
+	"context"
 	"errors"
 	"os"
 	"runtime"
@@ -28,28 +29,11 @@ func appidAndKey() (appid string, key string) {
 var appid, key = appidAndKey()
 
 func BGR24Data(image interface{}) (width, height int, data []uint8, err error) {
-
 	img, err := DecodeImage(image)
 	if err != nil {
 		return width, height, data, err
 	}
-	height = GetImageHeight(img)
-	width = GetImageWidth(img)
-	width = width - width%4
-
-	imgMatrix, err := ResizeForMatrix(img, width, height)
-
-	if err != nil {
-		return
-	}
-	for starty := 0; starty < height; starty++ {
-		for startx := 0; startx < width; startx++ {
-			R := imgMatrix[starty][startx][0]
-			G := imgMatrix[starty][startx][1]
-			B := imgMatrix[starty][startx][2]
-			data = append(data, B, G, R)
-		}
-	}
+	width, height, data = ResizeForMatrix(img)
 	return
 }
 
@@ -73,7 +57,7 @@ func NewEngine() (*Engine, error) {
 	engine := Engine{}
 	// 初始化引擎
 	fe, err := NewFaceEngine(DetectModeImage,
-		OrientPriority0,
+		OrientPriorityAllOut,
 		12,
 		1,
 		EnableFaceDetect|EnableFaceRecognition)
@@ -110,11 +94,10 @@ func (e *Engine) DetectFace(img interface{}) (*FaceImage, error) {
 	if err != nil {
 		return nil, err
 	}
-	singleFaceInfoArr := GetSingleFaceInfo(info)
-	if len(singleFaceInfoArr) == 0 {
+	if info.FaceNum < 1 {
 		return nil, errors.New("未检测到人脸")
 	}
-	face.SingleFaceInfo = singleFaceInfoArr[0]
+	face.SingleFaceInfo = GetSingleFaceInfo(info)[0]
 	return &face, nil
 }
 
@@ -177,7 +160,7 @@ func (e *Engine) CompareFeature(f1, f2 interface{}) (score float32, err error) {
 	return e.FaceFeatureCompareEx(feature1, feature2)
 }
 
-func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, top int, threshold float32) ([]Closest, error) {
+func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, top int, low_threshold float32, high_threshold float32) ([]Closest, error) {
 
 	t_cnt := len(byteFeatures)
 	if t_cnt == 0 { // 人脸库为空直接返回不匹配
@@ -207,79 +190,102 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 	}
 	// 创建任务通道
 	tasks := make(chan map[interface{}][]byte, t_cnt)
-	results := make(chan Closest, t_cnt)
-	max_groutine := 100
+	results := make(chan Closest, t_cnt) // 结果通道
+	max_groutine := 10
 
 	if t_cnt < max_groutine {
 		max_groutine = t_cnt
 	}
 	wg := sync.WaitGroup{}
-	wg.Add(max_groutine)
+	wg2 := sync.WaitGroup{}
+	rootCtx := context.Background()
+	ctx, cancelFunc := context.WithCancel(rootCtx)
+
+	// 启动协程发送tasks
+	// 通道发送任务
+	wg2.Add(1)
+	go func(ctx context.Context, cancelFunc context.CancelFunc) {
+		for k, v := range byteFeatures {
+			select {
+			case <-ctx.Done():
+				wg2.Done()
+				return
+			default:
+				switch v.(type) {
+				case []byte:
+					tasks <- map[interface{}][]byte{k: v.([]byte)}
+				case string:
+					tasks <- map[interface{}][]byte{k: utils.Str2bytes(v.(string))}
+				case *[]byte:
+					tasks <- map[interface{}][]byte{k: *(v.(*[]byte))}
+				case *interface{}:
+					tasks <- map[interface{}][]byte{k: (*v.(*interface{})).([]byte)}
+				default:
+					// 不支持的格式，按空处理
+					tasks <- map[interface{}][]byte{k: nil}
+					//tasks <- map[interface{}][]byte{k: reflect.ValueOf(v).Elem().Interface().([]byte)}// 类型不对会panic
+				}
+			}
+		}
+		wg2.Done()
+	}(ctx, cancelFunc)
+	// 启动协程消费tasks
 	for gr := 1; gr <= max_groutine; gr++ { //
-		go func() {
+		wg.Add(1)
+		go func(ctx context.Context, cancelFunc context.CancelFunc) {
 			for {
 				select {
+				case <-ctx.Done():
+					goto END
 				case t, ok := <-tasks:
 					if !ok {
 						goto END
 					}
 					for k, v := range t {
-						if len(v) != 1032 {
-							results <- Closest{Key: k, Score: 0.0}
-						} else {
-							score, _ := e.FaceFeatureCompareEx(feature1, v)
-							results <- Closest{Key: k, Score: score}
-						}
+						score, _ := e.FaceFeatureCompareEx(feature1, v)
+						results <- Closest{Key: k, Score: score}
 					}
 				}
 			}
 		END:
 			wg.Done()
-		}()
+		}(ctx, cancelFunc)
 	}
 
-	// 通道发送任务
-	for k, v := range byteFeatures {
-		switch v.(type) {
-		case []byte:
-			tasks <- map[interface{}][]byte{k: v.([]byte)}
-		case string:
-			tasks <- map[interface{}][]byte{k: utils.Str2bytes(v.(string))}
-		case *[]byte:
-			tasks <- map[interface{}][]byte{k: *(v.(*[]byte))}
-		case *interface{}:
-			tasks <- map[interface{}][]byte{k: (*v.(*interface{})).([]byte)}
-		default:
-			// 不支持的格式，按空处理
-			tasks <- map[interface{}][]byte{k: nil}
-			//tasks <- map[interface{}][]byte{k: reflect.ValueOf(v).Elem().Interface().([]byte)}// 类型不对会panic
-		}
-	}
 	// 通道接收结果
 	res := []Closest{}
 FOR:
 	for i := 0; i < t_cnt; i++ {
 		select {
 		case r := <-results:
-			if r.Score >= threshold {
+			if r.Score >= low_threshold {
 				res = append(res, r)
+			}
+			if r.Score >= high_threshold {
+				cancelFunc()
+				res = []Closest{r}
+				break FOR
 			}
 		case <-time.After(time.Second * 5): // 5秒超时,强制退出
 			break FOR
 		}
 	}
+	wg2.Wait()
 	close(tasks)
 	// 等待所有task完成
 	wg.Wait()
 	// 安全关闭results
 	close(results)
+
+	if len(res) == 1 {
+		return res, nil
+	}
 	sort.Slice(res, func(i, j int) bool { return res[i].Score > res[j].Score })
 	if top < len(res) {
 		return res[0:top], nil
 	} else {
 		return res, nil
 	}
-
 }
 
 func FeatureByteArr(img interface{}) (feature []byte, err error) {
@@ -297,71 +303,71 @@ func FeatureByteArr(img interface{}) (feature []byte, err error) {
 	return eng.ExtractFeatureByteArr(face)
 }
 
-//func CompareFeature(arr1, arr2 []byte) (score float32, err error) {
-//	var eng *Engine
-//	eng, err = NewEngine()
-//	if err != nil {
-//		return
-//	}
-//	defer eng.Destroy()
-//
-//	return eng.FaceFeatureCompareEx(arr1, arr2)
-//}
+func CompareFeature(arr1, arr2 []byte) (score float32, err error) {
+	var eng *Engine
+	eng, err = NewEngine()
+	if err != nil {
+		return
+	}
+	defer eng.Destroy()
 
-//func CompareImgFeature(img interface{}, arr []byte) (score float32, err error) {
-//	var eng *Engine
-//	eng, err = NewEngine()
-//	if err != nil {
-//		return
-//	}
-//	defer eng.Destroy()
-//
-//	var face *FaceImage
-//	face, err = eng.DetectFace(img)
-//	if err != nil {
-//		return
-//	}
-//
-//	var f FaceFeature
-//	f, err = eng.ExtractFeature(face)
-//	if err != nil {
-//		return
-//	}
-//	defer f.Release()
-//	return eng.FaceFeatureCompareEx(f.Feature, arr)
-//
-//}
-//
-//func CompareImg(img1, img2 interface{}) (score float32, err error) {
-//	var eng *Engine
-//	eng, err = NewEngine()
-//
-//	if err != nil {
-//		return
-//	}
-//	defer eng.Destroy()
-//	var face1, face2 *FaceImage
-//	face1, err = eng.DetectFace(img1)
-//	if err != nil {
-//		return
-//	}
-//	face2, err = eng.DetectFace(img2)
-//	if err != nil {
-//		return
-//	}
-//
-//	var f1, f2 FaceFeature
-//
-//	f1, err = eng.ExtractFeature(face1)
-//	if err != nil {
-//		return
-//	}
-//	defer f1.Release()
-//
-//	f2, err = eng.ExtractFeature(face2)
-//	if err != nil {
-//		return
-//	}
-//	defer f2.Release()
-//	return eng.CompareFeature(f1, f2)
-//}
+	return eng.FaceFeatureCompareEx(arr1, arr2)
+}
+
+func CompareImgFeature(img interface{}, arr []byte) (score float32, err error) {
+	var eng *Engine
+	eng, err = NewEngine()
+	if err != nil {
+		return
+	}
+	defer eng.Destroy()
+
+	var face *FaceImage
+	face, err = eng.DetectFace(img)
+	if err != nil {
+		return
+	}
+
+	var f FaceFeature
+	f, err = eng.ExtractFeature(face)
+	if err != nil {
+		return
+	}
+	defer f.Release()
+	return eng.FaceFeatureCompareEx(f.Feature, arr)
+
+}
+
+func CompareImg(img1, img2 interface{}) (score float32, err error) {
+	var eng *Engine
+	eng, err = NewEngine()
+
+	if err != nil {
+		return
+	}
+	defer eng.Destroy()
+	var face1, face2 *FaceImage
+	face1, err = eng.DetectFace(img1)
+	if err != nil {
+		return
+	}
+	face2, err = eng.DetectFace(img2)
+	if err != nil {
+		return
+	}
+
+	var f1, f2 FaceFeature
+
+	f1, err = eng.ExtractFeature(face1)
+	if err != nil {
+		return
+	}
+	defer f1.Release()
+
+	f2, err = eng.ExtractFeature(face2)
+	if err != nil {
+		return
+	}
+	defer f2.Release()
+	return eng.CompareFeature(f1, f2)
+}
