@@ -160,10 +160,10 @@ func (e *Engine) CompareFeature(f1, f2 interface{}) (score float32, err error) {
 	return e.FaceFeatureCompareEx(feature1, feature2)
 }
 
-func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, top int, low_threshold float32, high_threshold float32) ([]Closest, error) {
+func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, top int, lowThreshold float32, highThreshold float32) ([]Closest, error) {
 
-	t_cnt := len(byteFeatures)
-	if t_cnt == 0 { // 人脸库为空直接返回不匹配
+	featureSize := len(byteFeatures)
+	if featureSize == 0 { // 人脸库为空直接返回不匹配
 		return nil, nil
 	}
 	var feature1 []byte
@@ -189,12 +189,12 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 		return nil, errors.New("invaild feature size")
 	}
 	// 创建任务通道
-	tasks := make(chan map[interface{}][]byte, t_cnt)
-	results := make(chan Closest, t_cnt) // 结果通道
-	max_groutine := 10
+	tasks := make(chan map[interface{}][]byte, featureSize)
+	results := make(chan Closest, featureSize) // 结果通道
+	maxGroutine := 10
 
-	if t_cnt < max_groutine {
-		max_groutine = t_cnt
+	if featureSize < maxGroutine {
+		maxGroutine = featureSize
 	}
 	wg := sync.WaitGroup{}
 	wg2 := sync.WaitGroup{}
@@ -230,7 +230,7 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 		wg2.Done()
 	}(ctx, cancelFunc)
 	// 启动协程消费tasks
-	for gr := 1; gr <= max_groutine; gr++ { //
+	for gr := 1; gr <= maxGroutine; gr++ { //
 		wg.Add(1)
 		go func(ctx context.Context, cancelFunc context.CancelFunc) {
 			for {
@@ -255,13 +255,13 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 	// 通道接收结果
 	res := []Closest{}
 FOR:
-	for i := 0; i < t_cnt; i++ {
+	for i := 0; i < featureSize; i++ {
 		select {
 		case r := <-results:
-			if r.Score >= low_threshold {
+			if r.Score >= lowThreshold {
 				res = append(res, r)
 			}
-			if r.Score >= high_threshold {
+			if r.Score >= highThreshold {
 				cancelFunc()
 				res = []Closest{r}
 				break FOR
