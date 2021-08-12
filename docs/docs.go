@@ -32,6 +32,11 @@ var doc = `{
     "paths": {
         "/faceCompare/v1": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "compare two faceImage files and return the score and save path(0\u003cscore\u003c=1)",
                 "consumes": [
                     "multipart/form-data"
@@ -78,6 +83,11 @@ var doc = `{
         },
         "/faceFeature/v1": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "faceImagePath return from /faceImage/v1",
                 "produces": [
                     "application/json"
@@ -104,6 +114,11 @@ var doc = `{
         },
         "/faceImage/v1": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "post a face image then return the save path and faceFeature.",
                 "consumes": [
                     "multipart/form-data"
@@ -133,6 +148,11 @@ var doc = `{
         },
         "/featureCompare/v1": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "compare two faceFeature and return the score (0\u003cscore\u003c=1)",
                 "consumes": [
                     "application/json"
@@ -164,6 +184,11 @@ var doc = `{
         },
         "/group/users/v1": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "add users to a group",
                 "consumes": [
                     "application/json"
@@ -193,6 +218,11 @@ var doc = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "delete users from a group",
                 "consumes": [
                     "application/json"
@@ -224,6 +254,11 @@ var doc = `{
         },
         "/groups/v1": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "create a group using gid and name",
                 "consumes": [
                     "application/json"
@@ -255,6 +290,11 @@ var doc = `{
         },
         "/user/match/v1": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "post a faceFile to match a user in a group and save the faceFile.",
                 "consumes": [
                     "multipart/form-data"
@@ -288,6 +328,18 @@ var doc = `{
                         "description": "filePath, 指定文件路径，设置了该值服务器将以此文件路径保存文件, 格式为 yyyy/mm/dd/$md5.jpg",
                         "name": "filePath",
                         "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "lowScore, 范围(0.7-0.9] 只有大于该分值才认为匹配 不传默认值是0.8",
+                        "name": "lowScore",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "HighScore, 范围[lowScore-1.0] 搜索到大于该分值的匹配立即返回 不传默认值是0.9",
+                        "name": "highScore",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -302,6 +354,11 @@ var doc = `{
         },
         "/users/v1": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "create user if uid not exists else update",
                 "consumes": [
                     "multipart/form-data"
@@ -374,6 +431,11 @@ var doc = `{
         },
         "/users/v1/{uid}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "get user by uid if",
                 "produces": [
                     "application/json"

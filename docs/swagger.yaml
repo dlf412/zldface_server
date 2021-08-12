@@ -132,6 +132,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/v1.CompareFileRes'
+      security:
+        - ApiKeyAuth: []
       summary: compare two faceImage files
   /faceFeature/v1:
     get:
@@ -149,6 +151,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/v1.ExtractFeatureRes'
+      security:
+        - ApiKeyAuth: []
       summary: get faceFeature by faceImagePath
   /faceImage/v1:
     post:
@@ -168,6 +172,8 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/v1.ExtractFeatureRes'
+      security:
+        - ApiKeyAuth: []
       summary: save a FaceImage and extract faceFeature
   /featureCompare/v1:
     post:
@@ -188,6 +194,8 @@ paths:
           description: '{"score":0.90}'
           schema:
             type: string
+      security:
+        - ApiKeyAuth: []
       summary: compare two faceFeature
   /group/users/v1:
     delete:
@@ -208,6 +216,8 @@ paths:
           description: '{"msg":"删除成功"}'
           schema:
             type: string
+      security:
+        - ApiKeyAuth: []
       summary: Delete group users
     post:
       consumes:
@@ -227,6 +237,8 @@ paths:
           description: '{"msg":"添加成功"}'
           schema:
             type: string
+      security:
+        - ApiKeyAuth: []
       summary: Create group users
   /groups/v1:
     post:
@@ -247,6 +259,8 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/model.FaceGroup'
+      security:
+        - ApiKeyAuth: []
       summary: Greate a group
   /user/match/v1:
     post:
@@ -271,6 +285,14 @@ paths:
         in: formData
         name: filePath
         type: string
+      - description: lowScore, 范围(0.7-0.9] 只有大于该分值才认为匹配 不传默认值是0.8
+        in: formData
+        name: lowScore
+        type: number
+      - description: HighScore, 范围[lowScore-1.0] 搜索到大于该分值的匹配立即返回 不传默认值是0.9
+        in: formData
+        name: highScore
+        type: number
       produces:
       - application/json
       responses:
@@ -278,6 +300,8 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/response.FaceMatchResult'
+      security:
+        - ApiKeyAuth: []
       summary: Match a user
   /users/v1:
     post:
@@ -326,6 +350,8 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/model.FaceUser'
+      security:
+        - ApiKeyAuth: []
       summary: Create or Update user
   /users/v1/{uid}:
     get:
@@ -343,6 +369,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/model.FaceUser'
+      security:
+        - ApiKeyAuth: []
       summary: get user by uid
 securityDefinitions:
   ApiKeyAuth:

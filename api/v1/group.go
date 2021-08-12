@@ -19,6 +19,7 @@ import (
 // @Param data body request.FaceGroup true "group id, group name"
 // @Success 201 {object} model.FaceGroup
 // @Router /groups/v1 [post]
+// @Security ApiKeyAuth
 func CreateGroup(c *gin.Context) {
 
 	var G request.FaceGroup
@@ -46,6 +47,7 @@ func CreateGroup(c *gin.Context) {
 // @Param data body request.FaceGroupUser true "分组id, 用户uid列表"
 // @Success 201 {string} string "{"msg":"添加成功"}"
 // @Router /group/users/v1 [post]
+// @Security ApiKeyAuth
 func CreateGroupUser(c *gin.Context) {
 
 	var G request.FaceGroupUser
@@ -91,6 +93,7 @@ func CreateGroupUser(c *gin.Context) {
 // @Param data body request.FaceGroupUser true "分组id, 用户uid列表"
 // @Success 200 {string} string "{"msg":"删除成功"}"
 // @Router /group/users/v1 [delete]
+// @Security ApiKeyAuth
 func DeleteGroupUser(c *gin.Context) {
 
 	var G request.FaceGroupUser

@@ -48,6 +48,7 @@ func saveFileAndExtractFeature(faceFile io.ReadSeeker, mustBeFace bool) (string,
 // @Produce  json
 // @Success 201 {object} ExtractFeatureRes
 // @Router /faceImage/v1 [post]
+// @Security ApiKeyAuth
 func SaveFaceImage(c *gin.Context) {
 	file, err := c.FormFile("faceFile")
 	if err != nil {
@@ -83,6 +84,7 @@ func SaveFaceImage(c *gin.Context) {
 // @Param faceImagePath query string true "faceImagePath"
 // @Success 200 {object} ExtractFeatureRes
 // @Router /faceFeature/v1 [get]
+// @Security ApiKeyAuth
 func GetFaceFeature(c *gin.Context) {
 	faceImagePath := c.Query("faceImagePath")
 	if faceImagePath == "" {
@@ -105,6 +107,7 @@ func GetFaceFeature(c *gin.Context) {
 // @Param data body request.FaceFeatures true "人脸特征1, 人脸特征2"
 // @Success 200 {string} string "{"score":0.90}"
 // @Router /featureCompare/v1 [post]
+// @Security ApiKeyAuth
 func CompareFaceFeature(c *gin.Context) {
 	var features request.FaceFeatures
 	if err := c.ShouldBind(&features); err != nil {
@@ -133,6 +136,7 @@ func CompareFaceFeature(c *gin.Context) {
 // @Param faceFile2 formData file false "人脸照片2"
 // @Success 200 {object} CompareFileRes
 // @Router /faceCompare/v1 [post]
+// @Security ApiKeyAuth
 func CompareFaceFile(c *gin.Context) {
 	var faces request.FaceFiles
 	if err := c.ShouldBind(&faces); err != nil {

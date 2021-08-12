@@ -20,4 +20,6 @@ type FaceUserMatch struct {
 	FaceFile   *multipart.FileHeader `form:"faceFile" binding:"image_content_type,required"` // 人脸图片，建议不大于500k
 	OnlyUpFile bool                  `form:"onlyUpFile"`                                     // 默认0，传1的时候则表示仅仅上传图片，不需要人脸匹配
 	FilePath   string                `form:"filePath" binding:"omitempty"`
+	LowScore   float32               `form:"lowScore" binding:"omitempty,min=0.7,max=1,required_with=HighScore"`
+	HighScore  float32               `form:"highScore" binding:"omitempty,gtefield=LowScore,max=1.0,required_with=LowScore"`
 }

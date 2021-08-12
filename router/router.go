@@ -33,6 +33,8 @@ func Routers() *gin.Engine {
 	if !config.Debug {
 		if config.Config.Auth == "ZldAuth" {
 			PrivateGroup.Use(middleware.ZldAuth())
+		} else if config.Config.Auth == "OAuth2" {
+			PrivateGroup.Use(middleware.OAuth2())
 		}
 	}
 	{

@@ -188,6 +188,7 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 	if len(feature1) != 1032 {
 		return nil, errors.New("invaild feature size")
 	}
+
 	// 创建任务通道
 	tasks := make(chan map[interface{}][]byte, featureSize)
 	results := make(chan Closest, featureSize) // 结果通道
@@ -203,12 +204,13 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 
 	// 启动协程发送tasks
 	// 通道发送任务
+
 	wg2.Add(1)
 	go func(ctx context.Context, cancelFunc context.CancelFunc) {
+		defer wg2.Done()
 		for k, v := range byteFeatures {
 			select {
 			case <-ctx.Done():
-				wg2.Done()
 				return
 			default:
 				switch v.(type) {
@@ -227,19 +229,19 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 				}
 			}
 		}
-		wg2.Done()
 	}(ctx, cancelFunc)
 	// 启动协程消费tasks
 	for gr := 1; gr <= maxGroutine; gr++ { //
 		wg.Add(1)
 		go func(ctx context.Context, cancelFunc context.CancelFunc) {
+			defer wg.Done()
 			for {
 				select {
 				case <-ctx.Done():
-					goto END
+					return
 				case t, ok := <-tasks:
 					if !ok {
-						goto END
+						return
 					}
 					for k, v := range t {
 						score, _ := e.FaceFeatureCompareEx(feature1, v)
@@ -247,8 +249,6 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 					}
 				}
 			}
-		END:
-			wg.Done()
 		}(ctx, cancelFunc)
 	}
 
@@ -267,6 +267,7 @@ FOR:
 				break FOR
 			}
 		case <-time.After(time.Second * 5): // 5秒超时,强制退出
+			cancelFunc()
 			break FOR
 		}
 	}

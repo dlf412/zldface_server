@@ -26,6 +26,7 @@ import (
 // @param uid path string true "user id"
 // @Success 200 {object} model.FaceUser
 // @Router /users/v1/{uid} [get]
+// @Security ApiKeyAuth
 func GetUser(c *gin.Context) {
 	uid := c.Param("uid")
 	user := new(model.FaceUser)
@@ -53,6 +54,7 @@ func GetUser(c *gin.Context) {
 // @param idImagePath formData string false "身份证照片路径（服务器已存在的相对路径）"
 // @Success 201 {object} model.FaceUser
 // @Router /users/v1 [post]
+// @Security ApiKeyAuth
 func CreateUser(c *gin.Context) {
 	var U request.FaceUser
 	if err := c.Bind(&U); err != nil {
@@ -199,9 +201,12 @@ func CreateUser(c *gin.Context) {
 // @param gid formData string false "group id, onlyUpFile为false必传"
 // @param onlyUpFile formData bool false "onlyUpFile, default is false"
 // @param filePath formData string false "filePath, 指定文件路径，设置了该值服务器将以此文件路径保存文件, 格式为 yyyy/mm/dd/$md5.jpg"
+// @param lowScore formData float32 false "lowScore, 范围(0.7-0.9] 只有大于该分值才认为匹配 不传默认值是0.8"
+// @param highScore formData float32 false "HighScore, 范围[lowScore-1.0] 搜索到大于该分值的匹配立即返回 不传默认值是0.9"
 // @Produce json
 // @Success 201 {object} response.FaceMatchResult
 // @Router /user/match/v1 [post]
+// @Security ApiKeyAuth
 func MatchUser(c *gin.Context) {
 	var M request.FaceUserMatch
 	if err := c.Bind(&M); err != nil {
@@ -210,7 +215,12 @@ func MatchUser(c *gin.Context) {
 		return
 	}
 	config.Logger.Info("收到用户匹配请求", zap.Any("match user", M))
-
+	if M.LowScore == 0 {
+		M.LowScore = 0.8
+	}
+	if M.HighScore == 0 {
+		M.HighScore = 0.9
+	}
 	if M.OnlyUpFile {
 		ff, _ := M.FaceFile.Open()
 		defer ff.Close()
@@ -253,7 +263,7 @@ func MatchUser(c *gin.Context) {
 	features := cache.GetGroupFeatures(group)
 	bT := time.Now()
 	config.Logger.Info("开始search人脸", zap.String("人脸库", group.Gid), zap.Int("库大小", len(features)))
-	matches, err := eng.SearchN(ff, features, 1, 0.8, 0.9)
+	matches, err := eng.SearchN(ff, features, 1, M.LowScore, M.HighScore)
 	eT := time.Since(bT) // 从开始到当前所消耗的时间
 	config.Logger.Info("search人脸结束", zap.Duration("cost", eT), zap.Any("匹配结果", matches))
 	if err != nil {

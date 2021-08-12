@@ -46,4 +46,7 @@ storage:
     verdir: ${HPFACE_IMG_DIR:face/ver/}  # 识别人脸照片路径
 
 # 认证方式, 可自定义实现, 然后修改配置. DEBUG=True不开启认证
-auth: 'ZldAuth'
+auth: 'OAuth2'
+# oauth2.0认证方式，因为只有一个应用接入，暂时只做一个superToken
+oauth2:
+    superToken: ${SUPER_TOKEN:5kcUmuywagv99+asfs0f-b$#}

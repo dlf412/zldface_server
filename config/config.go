@@ -23,6 +23,10 @@ type storage struct {
 	VerDir string `yaml:"verdir"`
 }
 
+type oauth2 struct {
+	SuperToken string `yaml:"superToken"`
+}
+
 type Cfg struct {
 	Redis   redis_cfg
 	System  system
@@ -30,6 +34,7 @@ type Cfg struct {
 	Mysql   mysql_cfg
 	Storage storage
 	Auth    string
+	OAuth2  oauth2
 }
 
 var Config = Cfg{}

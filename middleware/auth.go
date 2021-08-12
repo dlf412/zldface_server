@@ -52,3 +52,29 @@ func ZldAuth() gin.HandlerFunc {
 		}
 	}
 }
+
+//OAuth2.0认证
+func OAuth2() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.Request.Header.Get("Authorization")
+		if len(token) == 0 {
+			c.JSON(http.StatusUnauthorized, gin.H{"detail": "Authorization is required Header"})
+			c.Abort()
+			return
+		}
+		s := strings.Split(token, " ")
+		if len(s) < 2 || s[0] != "Token" {
+			c.JSON(http.StatusForbidden, gin.H{"detail": "Invaild Authorization"})
+			c.Abort()
+			return
+		}
+		if s[1] == config.Config.OAuth2.SuperToken {
+			config.Logger.Info(fmt.Sprintf("OAuth2 superToken认证成功"), zap.String("Token", token))
+			c.Next()
+		} else {
+			c.JSON(http.StatusForbidden, gin.H{"detail": "Error Token"})
+			c.Abort()
+			return
+		}
+	}
+}
