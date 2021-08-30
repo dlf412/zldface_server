@@ -27,6 +27,11 @@ type oauth2 struct {
 	SuperToken string `yaml:"superToken"`
 }
 
+type arcsoft struct {
+	ExpiredAt string `yaml:"expiredAt"`
+	AlarmDays int    `yaml:"alarmDays"`
+}
+
 type Cfg struct {
 	Redis   redis_cfg
 	System  system
@@ -35,6 +40,7 @@ type Cfg struct {
 	Storage storage
 	Auth    string
 	OAuth2  oauth2
+	Arcsoft arcsoft
 }
 
 var Config = Cfg{}

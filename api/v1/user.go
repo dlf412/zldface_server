@@ -268,17 +268,23 @@ func MatchUser(c *gin.Context) {
 	config.Logger.Info("search人脸结束", zap.Duration("cost", eT), zap.Any("匹配结果", matches))
 	if err != nil {
 		config.Logger.Error("人脸查找发生错误", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"err": "人脸匹配发生错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
-	if matches == nil || len(matches) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"err": "未匹配到任何人脸"})
-		return
-	}
+
 	// 异步存储人脸
 	vfp := utils.MD5RelativePath(ff)
 	dst := path.Join(config.VerDir, vfp)
 	cache.UnsafeSaveFile(dst, ff)
+
+	if len(matches) == 0 {
+		result := response.FaceMatchResult{
+			recognition.Closest{}, vfp,
+		}
+		config.Logger.Info("未匹配到任何用户", zap.Any("结果", result))
+		c.JSON(http.StatusOK, result)
+		return
+	}
 	cache.HotFeautre(group.Gid, matches[0].Key.(string))
 	result := response.FaceMatchResult{
 		matches[0], vfp,

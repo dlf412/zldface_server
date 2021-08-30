@@ -206,7 +206,7 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 	// 通道发送任务
 
 	wg2.Add(1)
-	go func(ctx context.Context, cancelFunc context.CancelFunc) {
+	go func(ctx context.Context) {
 		defer wg2.Done()
 		for k, v := range byteFeatures {
 			select {
@@ -229,11 +229,11 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 				}
 			}
 		}
-	}(ctx, cancelFunc)
+	}(ctx)
 	// 启动协程消费tasks
 	for gr := 1; gr <= maxGroutine; gr++ { //
 		wg.Add(1)
-		go func(ctx context.Context, cancelFunc context.CancelFunc) {
+		go func(ctx context.Context) {
 			defer wg.Done()
 			for {
 				select {
@@ -249,7 +249,7 @@ func (e *Engine) SearchN(f1 interface{}, byteFeatures map[string]interface{}, to
 					}
 				}
 			}
-		}(ctx, cancelFunc)
+		}(ctx)
 	}
 
 	// 通道接收结果

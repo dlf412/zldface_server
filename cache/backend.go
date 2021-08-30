@@ -76,8 +76,17 @@ func BeRun() {
 					}
 					fs.buffer.Reset()
 				}()
-			case <-time.After(time.Second * 300): // 处理一些定时器逻辑
-				config.Logger.Info("time after trigger, do nothing...")
+			case <-time.After(time.Second * 1): // 处理一些定时器逻辑
+				config.Logger.Info("time after trigger, do something...")
+				if expired, err := time.ParseInLocation("2006-01-02", config.Config.Arcsoft.ExpiredAt, time.Local); err == nil {
+					if config.Config.Arcsoft.AlarmDays != 0 {
+						if time.Now().Sub(expired) >= time.Duration(config.Config.Arcsoft.AlarmDays)*time.Hour*24 {
+							config.Logger.Error("arcsoft sdk alarm", zap.String("expiredAt", config.Config.Arcsoft.ExpiredAt))
+						}
+					}
+				}
+				// config.Logger.Info("", zap.Any("config", config.Config.Arcsoft))
+				//config.Logger.Info("time after trigger, do nothing...")
 			}
 		}
 	}() //异步保存人脸匹配照，不阻塞接口

@@ -50,3 +50,7 @@ auth: 'OAuth2'
 # oauth2.0认证方式，因为只有一个应用接入，暂时只做一个superToken
 oauth2:
     superToken: ${SUPER_TOKEN:5kcUmuywagv99+asfs0f-b$#}
+
+arcsoft:
+    expiredAt: '2022-08-22' # 因免费版一年之后需要重新激活，如格式不正确则不报警
+    alarmDays: 5  # 在expiredAt之前几天会预警，建议大于3天。配置0则关闭报警
