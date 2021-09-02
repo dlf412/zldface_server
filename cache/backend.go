@@ -37,6 +37,38 @@ func HotFeautre(gid, uid string) {
 	}
 }
 
+func checkArcsoftSDKValid() {
+	if expired, err := time.ParseInLocation("2006-01-02", config.Config.Arcsoft.ExpiredAt, time.Local); err == nil {
+		if config.Config.Arcsoft.AlarmDays != 0 {
+			if expired.Sub(time.Now()) < time.Duration(config.Config.Arcsoft.AlarmDays)*time.Hour*24 {
+				config.Logger.Error("arcsoft sdk alarm", zap.String("expiredAt", config.Config.Arcsoft.ExpiredAt))
+				if len(config.Config.Arcsoft.AlarmTo) == 0 {
+					return
+				}
+				// 需要避免重复发邮件, 如果当天已经发过，则不重复发
+				tmpFile := ".arcsoft_alarm_email." + time.Now().Format("2006-01-02")
+				if _, err := os.Stat(tmpFile); err != nil && os.IsNotExist(err) {
+					if f, err1 := os.Create(tmpFile); err1 == nil {
+						f.Close()
+						go func() {
+							email := config.Config.Email
+							err2 := email.SendTo(
+								config.Config.Arcsoft.AlarmTo,
+								"【重要紧急】虹软sdk激活提醒",
+								"请到虹软官网下载sdk，重新激活，到期时间为"+config.Config.Arcsoft.ExpiredAt,
+								"text")
+							if err2 != nil {
+								os.Remove(tmpFile)
+								config.Logger.Error(err2.Error())
+							}
+						}()
+					}
+				}
+			}
+		}
+	}
+}
+
 // 可以启动goroutine进行一些后台作业， 比如异步接口的处理，定时器触发等一些任务
 func BeRun() {
 	// 单节点模式需要先加载特征到内存
@@ -76,17 +108,9 @@ func BeRun() {
 					}
 					fs.buffer.Reset()
 				}()
-			case <-time.After(time.Second * 1): // 处理一些定时器逻辑
+			case <-time.After(time.Second * 300): // 处理一些定时器逻辑
 				config.Logger.Info("time after trigger, do something...")
-				if expired, err := time.ParseInLocation("2006-01-02", config.Config.Arcsoft.ExpiredAt, time.Local); err == nil {
-					if config.Config.Arcsoft.AlarmDays != 0 {
-						if time.Now().Sub(expired) >= time.Duration(config.Config.Arcsoft.AlarmDays)*time.Hour*24 {
-							config.Logger.Error("arcsoft sdk alarm", zap.String("expiredAt", config.Config.Arcsoft.ExpiredAt))
-						}
-					}
-				}
-				// config.Logger.Info("", zap.Any("config", config.Config.Arcsoft))
-				//config.Logger.Info("time after trigger, do nothing...")
+				checkArcsoftSDKValid()
 			}
 		}
 	}() //异步保存人脸匹配照，不阻塞接口

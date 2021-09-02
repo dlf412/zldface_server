@@ -52,5 +52,11 @@ oauth2:
     superToken: ${SUPER_TOKEN:5kcUmuywagv99+asfs0f-b$#}
 
 arcsoft:
-    expiredAt: '2022-08-22' # 因免费版一年之后需要重新激活，如格式不正确则不报警
-    alarmDays: 5  # 在expiredAt之前几天会预警，建议大于3天。配置0则关闭报警
+    expiredAt: '2021-09-02' # 因免费版一年之后需要重新激活，如格式不正确则不报警, 如果是永久激活则不需要配置
+    alarmDays: 3  # 在expiredAt之前几天会预警，建议大于3天。配置0则关闭报警
+    alarmEmalTo:  '' # 设置邮箱，多个邮箱请用;隔开, 不配置或未空则不发邮件
+
+email:  # 邮箱服务器的配置
+    server: 'host:port'   # 邮箱服务器, 支持25和465端口
+    user: 'user'
+    password: 'password'

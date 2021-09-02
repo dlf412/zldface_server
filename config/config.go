@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"zldface_server/utils"
 )
 
 type system struct {
@@ -30,6 +31,18 @@ type oauth2 struct {
 type arcsoft struct {
 	ExpiredAt string `yaml:"expiredAt"`
 	AlarmDays int    `yaml:"alarmDays"`
+	AlarmTo   string `yaml:"alarmEmailTo"`
+}
+
+type email struct {
+	Server   string `yaml:"server"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	//To     string   `yaml:"to"`
+}
+
+func (e *email) SendTo(to, subject, body, mailtype string) error {
+	return utils.SendToMail(e.User, e.Password, e.Server, to, subject, body, "text")
 }
 
 type Cfg struct {
@@ -41,6 +54,7 @@ type Cfg struct {
 	Auth    string
 	OAuth2  oauth2
 	Arcsoft arcsoft
+	Email   email
 }
 
 var Config = Cfg{}
